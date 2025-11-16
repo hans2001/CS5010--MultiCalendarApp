@@ -1,0 +1,14 @@
+use calendar --name school
+create calendar --name work --timezone America/Los_Angeles
+create calendar --name school --timezone America/Los_Angeles
+create calendar --name school --timezone America/Los_Angeles
+use calendar --name school
+edit calendar --name school2 --property name school2
+edit calendar --name school --property fake school2
+create event "Team Meeting" from 2025-05-05T10:00 to 2025-05-05T11:00
+create event "Team Meeting" from 2025-05-05T15:00 to 2025-05-05T11:00
+create event from 2025-05-05T10:00 to 2025-05-05T11:00
+create event "Time Travel" from 2025-05-05T15:00 to 2025-05-05T14:00
+create event "Team Meeting" from 2025-05-05T10:00 to 2025-05-05T11:00
+edit event subject Meeting from 2025-05-05T10:00 with "Changed"
+delete event "Something"

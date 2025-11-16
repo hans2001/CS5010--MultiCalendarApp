@@ -1,0 +1,35 @@
+create calendar --name school --timezone America/New_York
+create calendar --name hobbies --timezone Europe/Paris
+create calendar --name work --timezone America/Los_Angeles
+use calendar --name school
+create event "Team Meeting" from 2025-05-05T10:00 to 2025-05-05T11:00
+edit event subject "Team Meeting" from 2025-05-05T10:00 to 2025-05-05T11:00 with "Sprint Planning"
+edit calendar --name school --property name school2
+copy event "Sprint Planning" on 2025-05-05T10:00 --target hobbies to 2025-05-05T11:00
+use calendar --name hobbies
+create event "Play Games" from 2025-07-07T10:00 to 2025-07-07T11:00
+copy events on 2025-07-07 --target work to 2025-07-07
+use calendar --name work
+create calendar --name vacation --timezone America/Los_Angeles
+copy events between 2025-07-07 and 2025-07-08 --target vacation to 2025-07-07
+print events on 2025-05-05
+print events on 2025-07-07
+create calendar --name oldCommands --timezone America/Los_Angeles
+use calendar --name oldCommands
+create event "Team Meeting" from 2025-05-05T10:00 to 2025-05-05T11:00
+create event "Lunch Break" on 2025-05-05
+create event "Project Review" from 2025-05-06T14:00 to 2025-05-06T15:30
+create event "Daily Standup" from 2025-05-05T09:00 to 2025-05-05T09:15 repeats MTWRF for 10 times
+create event "Weekly Review" from 2025-05-05T16:00 to 2025-05-05T17:00 repeats F until 2025-06-30
+create event "Weekend Planning" on 2025-05-03 repeats S for 4 times
+edit event subject "Team Meeting" from 2025-05-05T10:00 to 2025-05-05T11:00 with "Sprint Planning"
+edit event start "Sprint Planning" from 2025-05-05T10:00 to 2025-05-05T11:00 with 2025-05-05T10:30
+edit events subject "Daily Standup" from 2025-05-08T09:00 with "Morning Sync"
+edit series start "Weekly Review" from 2025-05-05T16:00 with 2025-05-05T15:00
+print events on 2025-05-05
+print events from 2025-05-05T00:00 to 2025-05-10T23:59
+show status on 2025-05-05T10:30
+use calendar --name hobbies
+export cal test1.csv
+export cal test2.ical
+exit
