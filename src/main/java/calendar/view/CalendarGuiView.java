@@ -1,30 +1,47 @@
 package calendar.view;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.ActionListener;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.YearMonth;
+import java.time.format.DateTimeParseException;
 import java.time.format.TextStyle;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
 
 /**
  * Class for the GUI.
  */
 public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface {
-  private JButton nextMonthBtn;
-  private JButton prevMonthBtn;
-  private JButton createEventBtn;
-  private JButton createCalendarBtn;
-  private JLabel monthYearTitle;
+  private final JButton nextMonthBtn;
+  private final JButton prevMonthBtn;
+  private final JButton createEventBtn;
+  private final JButton createCalendarBtn;
+  private final JLabel monthYearTitle;
 
-  private JPanel monthGrid;
-  private JLabel activeCalendarLabel;
+  private final JPanel monthGrid;
+  private final JLabel activeCalendarLabel;
+  private final JLabel selectedDateLabel;
+  private final JTextArea eventsArea;
+  private ActionListener commandListener;
+  private YearMonth currentMonth;
+  private LocalDate selectedDate;
 
   /**
    * Initilizes the GUI for all the buttons and titles.
@@ -58,6 +75,15 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
     monthGrid = new JPanel(new GridLayout(6, 7));
     this.add(monthGrid, BorderLayout.CENTER);
 
+    selectedDateLabel = new JLabel("Select a date to view events");
+    eventsArea = new JTextArea(15, 25);
+    eventsArea.setEditable(false);
+    eventsArea.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+    JPanel east = new JPanel(new BorderLayout());
+    east.add(selectedDateLabel, BorderLayout.NORTH);
+    east.add(new JScrollPane(eventsArea), BorderLayout.CENTER);
+    this.add(east, BorderLayout.EAST);
+
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
   }
 
@@ -68,6 +94,11 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
 
   @Override
   public void drawMonth(YearMonth month) {
+    this.currentMonth = month;
+    if (selectedDate == null || !selectedDate.getMonth().equals(month.getMonth())
+        || selectedDate.getYear() != month.getYear()) {
+      selectedDate = month.atDay(1);
+    }
     monthGrid.removeAll();
 
     String title = month.getMonth().getDisplayName(TextStyle.FULL, Locale.getDefault())
@@ -88,7 +119,18 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
     int day = 1;
     for (int i = 1; i <= 42; i++) {
       if (i >= startDay && day <= length) {
-        monthGrid.add(new JLabel(String.valueOf(day), JLabel.CENTER));
+        LocalDate date = month.atDay(day);
+        JButton dayButton = new JButton(String.valueOf(day));
+        dayButton.setActionCommand("select-day-" + date);
+        if (commandListener != null) {
+          dayButton.addActionListener(commandListener);
+        }
+        if (date.equals(selectedDate)) {
+          dayButton.setBackground(new Color(0x4C8BF5));
+          dayButton.setForeground(Color.WHITE);
+          dayButton.setOpaque(true);
+        }
+        monthGrid.add(dayButton);
         day++;
       } else {
         monthGrid.add(new JLabel(""));
@@ -101,6 +143,7 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
 
   @Override
   public void setCommandButtonListener(ActionListener listener) {
+    this.commandListener = listener;
     prevMonthBtn.setActionCommand("prev-month");
     nextMonthBtn.setActionCommand("next-month");
     createEventBtn.setActionCommand("create-event");
@@ -116,6 +159,88 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
   public void showError(String message) {
     JOptionPane.showMessageDialog(this,
         message, "Error", JOptionPane.ERROR_MESSAGE);
+  }
+
+  @Override
+  public void setSelectedDate(LocalDate date) {
+    this.selectedDate = date;
+    if (currentMonth != null) {
+      drawMonth(currentMonth);
+    }
+  }
+
+  @Override
+  public void displayEvents(LocalDate date, List<String> events) {
+    selectedDateLabel.setText("Events on " + date);
+    if (events.isEmpty()) {
+      eventsArea.setText("No events.");
+    } else {
+      eventsArea.setText(String.join("\n", events));
+    }
+  }
+
+  @Override
+  public Optional<String> promptForCreateEvent(LocalDate date) {
+    JTextField subjectField = new JTextField(20);
+    JTextField startTimeField = new JTextField("09:00");
+    JTextField endTimeField = new JTextField("10:00");
+    JCheckBox allDayCheck = new JCheckBox("All day");
+    startTimeField.setEnabled(true);
+    endTimeField.setEnabled(true);
+
+    allDayCheck.addActionListener(e -> {
+      boolean enabled = !allDayCheck.isSelected();
+      startTimeField.setEnabled(enabled);
+      endTimeField.setEnabled(enabled);
+    });
+
+    JPanel panel = new JPanel(new GridLayout(0, 1, 5, 5));
+    panel.add(new JLabel("Creating event on " + date));
+    panel.add(new JLabel("Subject:"));
+    panel.add(subjectField);
+    panel.add(allDayCheck);
+    panel.add(new JLabel("Start time (HH:mm):"));
+    panel.add(startTimeField);
+    panel.add(new JLabel("End time (HH:mm):"));
+    panel.add(endTimeField);
+
+    int result = JOptionPane.showConfirmDialog(this, panel, "New Event",
+        JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+    if (result != JOptionPane.OK_OPTION) {
+      return Optional.empty();
+    }
+
+    String subject = subjectField.getText().trim();
+    if (subject.isEmpty()) {
+      JOptionPane.showMessageDialog(this, "Subject cannot be blank.",
+          "Invalid Input", JOptionPane.ERROR_MESSAGE);
+      return Optional.empty();
+    }
+
+    if (allDayCheck.isSelected()) {
+      return Optional.of(String.format("create event \"%s\" on %s",
+          escapeSubject(subject), date));
+    }
+
+    try {
+      LocalTime.parse(startTimeField.getText().trim());
+      LocalTime.parse(endTimeField.getText().trim());
+    } catch (DateTimeParseException e) {
+      JOptionPane.showMessageDialog(this, "Time must be in HH:mm format.",
+          "Invalid Input", JOptionPane.ERROR_MESSAGE);
+      return Optional.empty();
+    }
+
+    return Optional.of(String.format("create event \"%s\" from %sT%s to %sT%s",
+        escapeSubject(subject),
+        date,
+        startTimeField.getText().trim(),
+        date,
+        endTimeField.getText().trim()));
+  }
+
+  private String escapeSubject(String subject) {
+    return subject.replace("\"", "'");
   }
 
   /**
