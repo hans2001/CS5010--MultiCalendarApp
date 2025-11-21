@@ -1,9 +1,8 @@
 package calendar.controller.guicommands;
 
+import calendar.controller.CalendarGuiController;
 import calendar.model.CalendarManager;
 import calendar.model.GuiCalendarInterface;
-import calendar.model.TimeZoneInMemoryCalendarInterface;
-import calendar.view.CalendarGuiView;
 import calendar.view.CalendarGuiViewInterface;
 
 /**
@@ -15,9 +14,11 @@ public interface CalendarGuiCommand {
    *
    * @param manager calendar manager.
    * @param inUseCalendar the current calendar in use.
+   * @param controller gui controller.
    * @param view the view.
    */
   void run(CalendarManager manager,
-           GuiCalendarInterface inUseCalendar, CalendarGuiViewInterface view);
+           GuiCalendarInterface inUseCalendar,
+           CalendarGuiController controller,
+           CalendarGuiViewInterface view);
 }
-

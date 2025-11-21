@@ -1,12 +1,16 @@
 package calendar.controller;
 
 import calendar.controller.guicommands.CalendarGuiCommand;
+import calendar.controller.guicommands.CreateCalendarCommand;
+import calendar.controller.guicommands.EditCalendarCommand;
 import calendar.controller.guicommands.NextMonthCommand;
 import calendar.controller.guicommands.PrevMonthCommand;
+import calendar.controller.guicommands.SelectCalendarCommand;
 import calendar.controller.service.CalendarFormService;
 import calendar.controller.service.EventCreationRequest;
 import calendar.model.CalendarManager;
 import calendar.model.GuiCalendar;
+import calendar.model.TimeZoneInMemoryCalendarInterface;
 import calendar.model.config.CalendarSettings;
 import calendar.model.domain.Event;
 import calendar.model.exception.ConflictException;
@@ -18,41 +22,44 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
- * Controller for the Gui.
+ * Controller for the GUI view.
  */
 public class CalendarGuiController implements ActionListener {
-  private final CalendarSettings settings;
   private final CalendarGuiViewInterface view;
-  private GuiCalendar inUseCalendar;
   private final CalendarManager calendarManager;
-  Map<String, CalendarGuiCommand> commandMap = new HashMap<>();
+  private GuiCalendar inUseGuiCalendar;
+  private final Map<String, CalendarGuiCommand> commandMap = new HashMap<>();
+  private final Set<String> knownCalendars = new HashSet<>();
   private final CalendarFormService formService = new CalendarFormService();
   private LocalDate selectedDate;
 
   /**
-   * Create a controller for the gui.
-   *
-   * @param settings configuration for the session's behavior and display.
-   * @param view the gui view.
-   * @param inUseCalendar the calendar in use.
-   * @param calendarManager manager.
+   * Creates the controller.
    */
-  public CalendarGuiController(CalendarSettings settings, CalendarGuiViewInterface view,
+  public CalendarGuiController(CalendarSettings settings,
+                               CalendarGuiViewInterface view,
                                GuiCalendar inUseCalendar,
                                CalendarManager calendarManager) {
-    this.calendarManager = calendarManager;
-    this.inUseCalendar = inUseCalendar;
-    this.settings = settings;
     this.view = view;
+    this.calendarManager = calendarManager;
+    this.inUseGuiCalendar = inUseCalendar;
 
     bindCommands();
     view.setCommandButtonListener(this);
+
+    knownCalendars.add(inUseCalendar.getName());
+    view.addCalendarToSelector(inUseCalendar.getName());
+    view.selectCalendarOnCalendarSelector(inUseCalendar.getName());
+    view.setActiveCalendarName(inUseCalendar.getName());
+    view.setActiveCalendarTimezone(inUseCalendar.getZoneId());
 
     selectedDate = inUseCalendar.getMonth().atDay(1);
     view.setSelectedDate(selectedDate);
@@ -60,12 +67,12 @@ public class CalendarGuiController implements ActionListener {
     refreshEvents();
   }
 
-  /**
-   * Binds commands to the command name.
-   */
   private void bindCommands() {
     commandMap.put("prev-month", new PrevMonthCommand());
     commandMap.put("next-month", new NextMonthCommand());
+    commandMap.put("create-calendar", new CreateCalendarCommand());
+    commandMap.put("select-calendar", new SelectCalendarCommand());
+    commandMap.put("edit-calendar", new EditCalendarCommand());
   }
 
   @Override
@@ -81,19 +88,12 @@ public class CalendarGuiController implements ActionListener {
     }
 
     CalendarGuiCommand cmd = commandMap.get(cmdName);
-
     if (cmd == null) {
       view.showError("Unknown command: " + cmdName);
       return;
     }
 
-    cmd.run(calendarManager, inUseCalendar, view);
-
-    if ("prev-month".equals(cmdName) || "next-month".equals(cmdName)) {
-      selectedDate = inUseCalendar.getMonth().atDay(1);
-      view.setSelectedDate(selectedDate);
-      refreshEvents();
-    }
+    cmd.run(calendarManager, inUseGuiCalendar, this, view);
   }
 
   private void handleSelectDay(LocalDate date) {
@@ -102,11 +102,36 @@ public class CalendarGuiController implements ActionListener {
     refreshEvents();
   }
 
+  private void handleCreateEvent() {
+    if (selectedDate == null) {
+      view.showError("Select a date first.");
+      return;
+    }
+
+    Optional<String> request = view.promptForCreateEvent(selectedDate);
+    if (request.isEmpty()) {
+      return;
+    }
+
+    try {
+      EventCreationRequest parsed = formService.parseCreateEventCommand(request.get());
+      formService.applyCreateEvent(parsed, getActiveCalendar());
+      refreshEvents();
+    } catch (ValidationException e) {
+      view.showError("Fields are invalid " + e.getMessage());
+    } catch (ConflictException e) {
+      view.showError("Event conflict: " + e.getMessage());
+    } catch (IllegalArgumentException e) {
+      view.showError(e.getMessage());
+    }
+  }
+
   private void refreshEvents() {
     if (selectedDate == null) {
       return;
     }
-    List<Event> events = inUseCalendar.eventsOn(selectedDate);
+
+    List<Event> events = getActiveCalendar().eventsOn(selectedDate);
     List<String> lines = new ArrayList<>();
     for (Event event : events) {
       lines.add(String.format(Locale.ROOT, "- %s from %s to %s",
@@ -117,27 +142,53 @@ public class CalendarGuiController implements ActionListener {
     view.displayEvents(selectedDate, lines);
   }
 
-  private void handleCreateEvent() {
-    if (selectedDate == null) {
-      view.showError("Select a date first.");
-      return;
-    }
+  private TimeZoneInMemoryCalendarInterface getActiveCalendar() {
+    return calendarManager.getCalendar(inUseGuiCalendar.getName());
+  }
 
-    Optional<String> command = view.promptForCreateEvent(selectedDate);
-    if (command.isEmpty()) {
-      return;
+  /**
+   * Registers a newly created calendar name to avoid duplicates.
+   */
+  public void registerCalendarName(String name) {
+    if (knownCalendars.add(name)) {
+      view.addCalendarToSelector(name);
     }
+  }
 
-    try {
-      EventCreationRequest request = formService.parseCreateEventCommand(command.get());
-      formService.applyCreateEvent(request, inUseCalendar);
-      refreshEvents();
-    } catch (ValidationException e1) {
-      view.showError("Fields are invalid " + e1.getMessage());
-    } catch (ConflictException e2) {
-      view.showError("Event conflict: " + e2.getMessage());
-    } catch (IllegalArgumentException e3) {
-      view.showError(e3.getMessage());
+  /**
+   * Invoked by commands when the active calendar changes.
+   */
+  public void setInUseCalendar(GuiCalendar newCalendar) {
+    this.inUseGuiCalendar = newCalendar;
+    selectedDate = newCalendar.getMonth().atDay(1);
+    view.setActiveCalendarName(newCalendar.getName());
+    view.setActiveCalendarTimezone(newCalendar.getZoneId());
+    if (knownCalendars.add(newCalendar.getName())) {
+      view.addCalendarToSelector(newCalendar.getName());
     }
+    view.selectCalendarOnCalendarSelector(newCalendar.getName());
+    view.setSelectedDate(selectedDate);
+    view.drawMonth(newCalendar.getMonth());
+    refreshEvents();
+  }
+
+  /**
+   * Called after month navigation commands.
+   *
+   * @param newMonth month to display.
+   */
+  public void onMonthChanged(YearMonth newMonth) {
+    this.selectedDate = newMonth.atDay(1);
+    view.setSelectedDate(selectedDate);
+    view.drawMonth(newMonth);
+    refreshEvents();
+  }
+
+  /**
+   * Refreshes the GUI after a calendar edit.
+   */
+  public void refreshActiveCalendar() {
+    TimeZoneInMemoryCalendarInterface active = getActiveCalendar();
+    setInUseCalendar(new GuiCalendar(active));
   }
 }
