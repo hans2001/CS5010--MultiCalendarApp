@@ -1,19 +1,13 @@
 package calendar.controller;
 
-import static calendar.controller.CommandPatterns.CREATE_ALLDAY;
-import static calendar.controller.CommandPatterns.CREATE_ALLDAY_REPEAT_N;
-import static calendar.controller.CommandPatterns.CREATE_ALLDAY_REPEAT_UNTIL;
-import static calendar.controller.CommandPatterns.CREATE_REPEAT_N;
-import static calendar.controller.CommandPatterns.CREATE_REPEAT_UNTIL;
-import static calendar.controller.CommandPatterns.CREATE_SINGLE;
-import static calendar.controller.CommandPatterns.EDIT_EVENTS;
-import static calendar.controller.CommandPatterns.EDIT_SERIES;
-import static calendar.controller.CommandPatterns.EDIT_SINGLE;
 import static calendar.controller.CommandPatterns.EXPORT;
 import static calendar.controller.CommandPatterns.SHOW_STATUS_ON;
 
 import calendar.controller.commands.CommandHandler;
 import calendar.controller.commands.HandleEvents;
+import calendar.controller.service.CalendarFormService;
+import calendar.controller.service.EventCreationRequest;
+import calendar.controller.service.EventEditRequest;
 import calendar.export.CalendarExporter;
 import calendar.export.CsvExporter;
 import calendar.export.IcalExporter;
@@ -21,32 +15,23 @@ import calendar.model.CalendarManager;
 import calendar.model.TimeZoneInMemoryCalendarInterface;
 import calendar.model.api.CalendarApi;
 import calendar.model.api.EditScope;
-import calendar.model.api.EventDraft;
-import calendar.model.api.EventPatch;
-import calendar.model.api.EventSelector;
-import calendar.model.api.SeriesDraft;
 import calendar.model.config.CalendarSettings;
 import calendar.model.domain.BusyStatus;
 import calendar.model.domain.Event;
-import calendar.model.domain.Status;
 import calendar.model.exception.ConflictException;
 import calendar.model.exception.NotFoundException;
 import calendar.model.exception.ValidationException;
-import calendar.model.recurrence.RecurrenceRule;
-import calendar.model.recurrence.Weekday;
 import calendar.view.CalendarView;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -60,6 +45,7 @@ public class CalendarControllerImpl implements CalendarController {
   private final CalendarExporter csvExporter;
   private final CalendarExporter icalExporter;
   private final CalendarManager calendarManager;
+  private final CalendarFormService formService;
   private final Map<String, CommandHandler> commandHandlers = new HashMap<>();
   private TimeZoneInMemoryCalendarInterface inUseCalendar = null;
 
@@ -83,6 +69,7 @@ public class CalendarControllerImpl implements CalendarController {
     this.csvExporter = new CsvExporter(sharedSettings);
     this.icalExporter = new IcalExporter(sharedSettings);
     this.calendarManager = new CalendarManager();
+    this.formService = new CalendarFormService();
   }
 
   /**
@@ -104,20 +91,6 @@ public class CalendarControllerImpl implements CalendarController {
     }
 
     return parts.toArray(new String[0]);
-  }
-
-  /**
-   * Parses weekday letters (e.g., MTWRFSU) into an EnumSet of Weekday.
-   *
-   * @param weekdays concatenated weekday letters
-   * @return corresponding set of weekdays
-   */
-  private static EnumSet<Weekday> weekdaysSetFromString(String weekdays) {
-    EnumSet<Weekday> set = EnumSet.noneOf(Weekday.class);
-    for (char c : weekdays.toCharArray()) {
-      set.add(Weekday.valueOf(String.valueOf(c).toUpperCase()));
-    }
-    return set;
   }
 
   /**
@@ -278,10 +251,6 @@ public class CalendarControllerImpl implements CalendarController {
   /**
    * Parse a create-event command and perform the corresponding creation on the provided calendar.
    *
-   * <p>Supports creating a single timed event, repeating series by count, repeating series until a
-   * date, all-day events, and all-day repeating series (both by count and until date). On success
-   * prints a confirmation message to the view; on failure prints a descriptive error message.
-   *
    * @param input    the raw create command string (must match one of the controller's
    *                 create patterns)
    * @param calendar the calendar API to apply the created event or series to
@@ -290,163 +259,16 @@ public class CalendarControllerImpl implements CalendarController {
    */
   private void handleCreateEvent(String input, CalendarApi calendar, CalendarView view)
       throws IOException {
-    input = input.trim();
-
-    if (input.matches(CREATE_SINGLE)) {
-      String[] parts = splitCommands(input);
-      String subject = parts[2];
-      String from = parts[4];
-      String to = parts[6];
-
-      EventDraft draft = new EventDraft();
-      draft.subject = subject;
-      draft.start = Optional.of(LocalDateTime.parse(from));
-      draft.end = Optional.of(LocalDateTime.parse(to));
-
-      try {
-        calendar.create(draft);
-        safePrintMessage(view, "Event created successfully.");
-      } catch (ValidationException e) {
-        safePrintMessage(view, "Fields are invalid " + e.getMessage());
-      } catch (ConflictException c) {
-        safePrintMessage(view, "Event conflict: " + c.getMessage());
-      }
-
-    } else if (input.matches(CREATE_REPEAT_N)) {
-      String[] parts = splitCommands(input);
-      String subject = parts[2];
-      LocalDateTime startDate = LocalDateTime.parse(parts[4]);
-
-      SeriesDraft draft = new SeriesDraft();
-      draft.subject = subject;
-      draft.startDate = startDate.toLocalDate();
-      draft.startTime = Optional.of(startDate.toLocalTime());
-
-      LocalDateTime to = LocalDateTime.parse((parts[6]));
-      draft.endTime = Optional.of(to.toLocalTime());
-
-      String weekdays = parts[8];
-      EnumSet<Weekday> weekdaySet = weekdaysSetFromString(weekdays);
-
-      try {
-        int n = Integer.parseInt(parts[10]);
-        draft.rule = new RecurrenceRule(weekdaySet, Optional.of(n), Optional.empty());
-
-        calendar.createSeries(draft);
-        safePrintMessage(view, "Event created successfully.");
-      } catch (ValidationException e) {
-        safePrintMessage(view, "Fields are invalid " + e.getMessage());
-      } catch (IllegalArgumentException e) {
-        safePrintMessage(view, "Fields are invalid " + e.getMessage());
-      } catch (ConflictException c) {
-        safePrintMessage(view, "Event conflict: " + c.getMessage());
-      }
-    } else if (input.matches(CREATE_REPEAT_UNTIL)) {
-      String[] parts = splitCommands(input);
-      String subject = parts[2];
-      String from = parts[4];
-
-      SeriesDraft draft = new SeriesDraft();
-      draft.subject = subject;
-      draft.startDate = LocalDateTime.parse(from).toLocalDate();
-      draft.startTime = Optional.of(LocalDateTime.parse(from).toLocalTime());
-      LocalDateTime to = LocalDateTime.parse((parts[6]));
-      draft.endTime = Optional.of(to.toLocalTime());
-
-      String weekdays = parts[8];
-      EnumSet<Weekday> weekdaySet = weekdaysSetFromString(weekdays);
-
-      try {
-        LocalDate untilDate = LocalDate.parse(parts[10]);
-        LocalDate startDate = LocalDateTime.parse(from).toLocalDate();
-        if (!untilDate.isAfter(startDate) && !untilDate.isEqual(startDate)) {
-          throw new IllegalArgumentException("Until date must be after or equal to start date");
-        }
-        draft.rule = new RecurrenceRule(weekdaySet, Optional.empty(), Optional.of(untilDate));
-
-        calendar.createSeries(draft);
-        safePrintMessage(view, "Event created successfully.");
-      } catch (ValidationException e) {
-        safePrintMessage(view, "Fields are invalid " + e.getMessage());
-      } catch (IllegalArgumentException e) {
-        safePrintMessage(view, "Fields are invalid " + e.getMessage());
-      } catch (ConflictException c) {
-        safePrintMessage(view, "Event conflict: " + c.getMessage());
-      }
-    } else if (input.matches(CREATE_ALLDAY)) {
-      String[] parts = splitCommands(input);
-
-      String subject = parts[2];
-      String onDate = parts[4];
-
-      EventDraft draft = new EventDraft();
-      draft.subject = subject;
-      draft.allDayDate = Optional.of(LocalDate.parse(onDate));
-
-      try {
-        calendar.create(draft);
-        safePrintMessage(view, "Event created successfully.");
-      } catch (ValidationException e) {
-        safePrintMessage(view, "Fields are invalid " + e.getMessage());
-      } catch (ConflictException c) {
-        safePrintMessage(view, "Event conflict: " + c.getMessage());
-      }
-    } else if (input.matches(CREATE_ALLDAY_REPEAT_N)) {
-      String[] parts = splitCommands(input);
-      String subject = parts[2];
-      LocalDate onDate = LocalDate.parse(parts[4]);
-
-      SeriesDraft draft = new SeriesDraft();
-      draft.subject = subject;
-      draft.startDate = onDate;
-      draft.allDay = true;
-
-      try {
-        int n = Integer.parseInt(parts[8]);
-        String weekdays = parts[6];
-        EnumSet<Weekday> weekdaySet = weekdaysSetFromString(weekdays);
-        draft.rule = new RecurrenceRule(weekdaySet, Optional.of(n), Optional.empty());
-
-        calendar.createSeries(draft);
-        safePrintMessage(view, "Event created successfully.");
-      } catch (ValidationException e) {
-        safePrintMessage(view, "Fields are invalid " + e.getMessage());
-      } catch (IllegalArgumentException e) {
-        safePrintMessage(view, "Fields are invalid " + e.getMessage());
-      } catch (ConflictException c) {
-        safePrintMessage(view, "Event conflict: " + c.getMessage());
-      }
-    } else if (input.matches(CREATE_ALLDAY_REPEAT_UNTIL)) {
-      String[] parts = splitCommands(input);
-      String subject = parts[2];
-      LocalDate onDate = LocalDate.parse(parts[4]);
-
-      SeriesDraft draft = new SeriesDraft();
-      draft.subject = subject;
-      draft.startDate = onDate;
-      draft.allDay = true;
-
-      try {
-        String weekdays = parts[6];
-        EnumSet<Weekday> weekdaySet = weekdaysSetFromString(weekdays);
-
-        LocalDate untilDate = LocalDate.parse(parts[8]);
-        if (!untilDate.isAfter(onDate) && !untilDate.isEqual(onDate)) {
-          throw new IllegalArgumentException("Until date must be after or equal to start date");
-        }
-        draft.rule = new RecurrenceRule(weekdaySet, Optional.empty(), Optional.of(untilDate));
-
-        calendar.createSeries(draft);
-        safePrintMessage(view, "Event created successfully.");
-      } catch (ValidationException e) {
-        safePrintMessage(view, "Fields are invalid " + e.getMessage());
-      } catch (IllegalArgumentException e) {
-        safePrintMessage(view, "Fields are invalid " + e.getMessage());
-      } catch (ConflictException c) {
-        safePrintMessage(view, "Event conflict: " + c.getMessage());
-      }
-    } else {
-      safePrintMessage(view, "Error: Invalid create event command format.");
+    try {
+      EventCreationRequest request = formService.parseCreateEventCommand(input.trim());
+      formService.applyCreateEvent(request, calendar);
+      safePrintMessage(view, "Event created successfully.");
+    } catch (ValidationException e) {
+      safePrintMessage(view, "Fields are invalid " + e.getMessage());
+    } catch (ConflictException c) {
+      safePrintMessage(view, "Event conflict: " + c.getMessage());
+    } catch (IllegalArgumentException e) {
+      safePrintMessage(view, "Fields are invalid " + e.getMessage());
     }
   }
 
@@ -461,83 +283,23 @@ public class CalendarControllerImpl implements CalendarController {
    */
   private void handleEditEvent(String input, CalendarApi calendar, CalendarView view)
       throws IOException {
-    input = input.trim();
-
-    if (input.matches(EDIT_SINGLE)) {
-      String[] parts = splitCommands(input);
-      String subject = parts[3];
-      LocalDateTime from = LocalDateTime.parse(parts[5]);
-      LocalDateTime to = LocalDateTime.parse(parts[7]);
-
-      EventSelector selector = new EventSelector();
-      selector.subject = subject;
-      selector.start = from;
-      selector.end = Optional.of(to);
-
-      String newPropertyValue = parts[9];
-      String property = parts[2];
-
-      try {
-        EventPatch patch = createPatch(property, newPropertyValue);
-        calendar.updateBySelector(selector, patch, EditScope.SINGLE);
-        safePrintMessage(view, "Event updated successfully.");
-      } catch (NotFoundException e) {
-        safePrintMessage(view, "No matching event found: " + e.getMessage());
-      } catch (ValidationException e) {
-        safePrintMessage(view, "Invalid update values: " + e.getMessage());
-      } catch (ConflictException e) {
-        safePrintMessage(view, "Update failed due to event conflict: " + e.getMessage());
-      } catch (IllegalArgumentException e) {
-        // e.g., invalid status value
-        safePrintMessage(view, "Invalid property value: " + e.getMessage());
-      }
-    } else if (input.matches(EDIT_EVENTS)) {
-      String[] parts = splitCommands(input);
-      String property = parts[2];
-      String subject = parts[3];
-      LocalDateTime from = LocalDateTime.parse(parts[5]);
-      String newPropertyValue = parts[7];
-
-      EventSelector selector = new EventSelector();
-      selector.subject = subject;
-      selector.start = from;
-
-      try {
-        EventPatch patch = createPatch(property, newPropertyValue);
-        calendar.updateBySelector(selector, patch, EditScope.FOLLOWING);
-        safePrintMessage(view, "Events updated successfully.");
-      } catch (NotFoundException e) {
-        safePrintMessage(view, "No matching event found: " + e.getMessage());
-      } catch (ValidationException e) {
-        safePrintMessage(view, "Invalid update values: " + e.getMessage());
-      } catch (ConflictException e) {
-        safePrintMessage(view, "Update failed due to event conflict: " + e.getMessage());
-      }
-
-    } else if (input.matches(EDIT_SERIES)) {
-      String[] parts = splitCommands(input);
-      String property = parts[2];
-      String subject = parts[3];
-      LocalDateTime from = LocalDateTime.parse(parts[5]);
-      String newPropertyValue = parts[7];
-
-      EventSelector selector = new EventSelector();
-      selector.subject = subject;
-      selector.start = from;
-
-      try {
-        EventPatch patch = createPatch(property, newPropertyValue);
-        calendar.updateBySelector(selector, patch, EditScope.ENTIRE_SERIES);
-        safePrintMessage(view, "Series updated successfully.");
-      } catch (NotFoundException e) {
-        safePrintMessage(view, "No matching event found: " + e.getMessage());
-      } catch (ValidationException e) {
-        safePrintMessage(view, "Invalid update values: " + e.getMessage());
-      } catch (ConflictException e) {
-        safePrintMessage(view, "Update failed due to event conflict: " + e.getMessage());
-      }
-    } else {
-      safePrintMessage(view, "Error: Invalid edit command format.");
+    try {
+      EventEditRequest request = formService.parseEditEventCommand(input.trim());
+      formService.applyEditEvent(request, calendar);
+      String successMessage = request.scope() == EditScope.SINGLE
+          ? "Event updated successfully."
+          : request.scope() == EditScope.FOLLOWING
+              ? "Events updated successfully."
+              : "Series updated successfully.";
+      safePrintMessage(view, successMessage);
+    } catch (NotFoundException e) {
+      safePrintMessage(view, "No matching event found: " + e.getMessage());
+    } catch (ValidationException e) {
+      safePrintMessage(view, "Invalid update values: " + e.getMessage());
+    } catch (ConflictException e) {
+      safePrintMessage(view, "Update failed due to event conflict: " + e.getMessage());
+    } catch (IllegalArgumentException e) {
+      safePrintMessage(view, e.getMessage());
     }
   }
 
@@ -626,44 +388,6 @@ public class CalendarControllerImpl implements CalendarController {
       return icalExporter.export(targetPath, events);
     }
     throw new IllegalArgumentException("Unsupported export format: " + targetPath);
-  }
-
-  /**
-   * Creates an EventPatch with a new field based on the given property and value.
-   *
-   * @param property the property name to update (ex subject, start, end, etc.).
-   * @param newValue the new value as a string
-   * @return an EventPatch with the appropriate field set
-   */
-  private EventPatch createPatch(String property, String newValue) {
-    EventPatch patch = new EventPatch();
-
-    EditProperty.from(property).ifPresent(p -> {
-      switch (p) {
-        case SUBJECT:
-          patch.subject = Optional.of(newValue);
-          break;
-        case START:
-          patch.start = Optional.of(LocalDateTime.parse(newValue));
-          break;
-        case END:
-          patch.end = Optional.of(LocalDateTime.parse(newValue));
-          break;
-        case DESCRIPTION:
-          patch.description = Optional.of(newValue);
-          break;
-        case LOCATION:
-          patch.location = Optional.of(newValue);
-          break;
-        case STATUS:
-          patch.status = Optional.of(Status.valueOf(newValue.toUpperCase()));
-          break;
-        default:
-          break;
-      }
-    });
-
-    return patch;
   }
 
 }

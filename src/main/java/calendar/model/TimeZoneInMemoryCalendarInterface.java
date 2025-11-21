@@ -35,14 +35,6 @@ public interface TimeZoneInMemoryCalendarInterface extends CalendarApi {
   void setName(String name);
 
   /**
-   * Sets the calendar's timezone.
-   *
-   * @param timeZoneId the new timezone in IANA format (e.g., "America/New_York").
-   * @throws IllegalArgumentException if the timezone is invalid.
-   */
-  void setZoneId(String timeZoneId);
-
-  /**
    * Sets the calendar's timezone using a ZoneId.
    *
    * @param zoneId the new timezone.

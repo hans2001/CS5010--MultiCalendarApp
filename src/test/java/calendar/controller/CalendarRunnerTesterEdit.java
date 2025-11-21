@@ -73,7 +73,7 @@ public class CalendarRunnerTesterEdit extends CalendarRunnerTester {
         + "Enter a command: Successfully created calendar: work\n"
         + "Enter a command: Successfully switched calendar to school\n"
         + "Enter a command: Calendar with name 'work' already exists\n"
-        + "Enter a command: Unsupported timezone: fake/zone\n"
+        + "Enter a command: Invalid timezone: fake/zone\n"
         + "Enter a command: Invalid edit calendar command format.\n"
         + "Enter a command: Invalid edit calendar command format.\n"
         + "Enter a command: Invalid edit calendar command format.\n"

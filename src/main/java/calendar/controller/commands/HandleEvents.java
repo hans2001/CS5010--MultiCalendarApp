@@ -10,8 +10,10 @@ import calendar.model.domain.Event;
 import calendar.model.exception.NotFoundException;
 import calendar.view.CalendarView;
 import java.io.IOException;
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
@@ -77,8 +79,11 @@ public class HandleEvents {
       String newProperty = parts[6];
 
       try {
-        manager.editCalendarTimezone(calendarName, newProperty);
+        ZoneId newZone = ZoneId.of(newProperty);
+        manager.editCalendarTimezone(calendarName, newZone);
         view.printMessage("Successfully edited calendar timezone.");
+      } catch (DateTimeException e) {
+        view.printMessage("Invalid timezone: " + newProperty);
       } catch (Exception e) {
         view.printMessage(e.getMessage());
       }

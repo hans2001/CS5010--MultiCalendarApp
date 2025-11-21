@@ -245,11 +245,6 @@ public final class EventCopierTest {
     }
 
     @Override
-    public void setZoneId(String timeZoneId) {
-      this.zoneId = ZoneId.of(timeZoneId);
-    }
-
-    @Override
     public void setZoneId(ZoneId zoneId) {
       this.zoneId = zoneId;
     }
