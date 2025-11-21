@@ -1,5 +1,6 @@
 package calendar.controller.guicommands;
 
+import calendar.controller.CalendarGuiController;
 import calendar.model.CalendarManager;
 import calendar.model.GuiCalendarInterface;
 import calendar.view.CalendarGuiView;
@@ -11,9 +12,10 @@ import java.time.YearMonth;
  */
 public class PrevMonthCommand implements CalendarGuiCommand {
   @Override
-  public void run(CalendarManager manager,
-                  GuiCalendarInterface inUseCalendar, CalendarGuiViewInterface view) {
-    YearMonth prev = inUseCalendar.getPreviousMonth();
+  public void run(CalendarManager manager, GuiCalendarInterface current,
+                  CalendarGuiController controller,
+                  CalendarGuiViewInterface view) {
+    YearMonth prev = current.getPreviousMonth();
     view.drawMonth(prev);
   }
 }

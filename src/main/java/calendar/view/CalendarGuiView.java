@@ -1,17 +1,28 @@
 package calendar.view;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.awt.Insets;
 import java.awt.event.ActionListener;
+import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.time.format.TextStyle;
+import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
+import java.util.Set;
+import javax.swing.Box;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JTextField;
 
 /**
  * Class for the GUI.
@@ -22,12 +33,15 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
   private JButton createEventBtn;
   private JButton createCalendarBtn;
   private JLabel monthYearTitle;
+  private JButton editCalendarBtn;
 
+  private JLabel activeCalendarTzLabel;
   private JPanel monthGrid;
   private JLabel activeCalendarLabel;
+  private JComboBox<String> calendarSelector;
 
   /**
-   * Initilizes the GUI for all the buttons and titles.
+   * Initializes the GUI for all the buttons and titles.
    */
   public CalendarGuiView() {
     super("Calendar GUI");
@@ -38,19 +52,37 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
     nextMonthBtn = new JButton(">");
     createEventBtn = new JButton("New Event");
     createCalendarBtn = new JButton("New Calendar");
-    activeCalendarLabel = new JLabel("Current Calendar: default");
+    editCalendarBtn = new JButton("Edit Calendar");
+
+    activeCalendarLabel = new JLabel("Current Calendar: ");
+    activeCalendarTzLabel = new JLabel("Timezone: ");
+
+    // Controls bar on top
     JPanel top = new JPanel();
+    calendarSelector = new JComboBox<>();
+    calendarSelector.setPrototypeDisplayValue("Longest Calendar Name Here");
+    top.add(calendarSelector);
 
     top.add(prevMonthBtn);
     top.add(nextMonthBtn);
     top.add(createEventBtn);
     top.add(createCalendarBtn);
+    top.add(editCalendarBtn);
     top.add(activeCalendarLabel);
 
+    // Calendar name + timezone below buttons
+    JPanel calendarInfoPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+    calendarInfoPanel.add(activeCalendarLabel);
+    calendarInfoPanel.add(Box.createRigidArea(new Dimension(20, 0)));
+    calendarInfoPanel.add(activeCalendarTzLabel);
+
+    // Calendar's Current Month and Year
     monthYearTitle = new JLabel("", JLabel.CENTER);
     monthYearTitle.setFont(new Font("SansSerif", Font.BOLD, 20));
+
     JPanel northPanel = new JPanel(new BorderLayout());
     northPanel.add(top, BorderLayout.NORTH);
+    northPanel.add(calendarInfoPanel, BorderLayout.CENTER);
     northPanel.add(monthYearTitle, BorderLayout.SOUTH);
 
     this.add(northPanel, BorderLayout.NORTH);
@@ -88,7 +120,18 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
     int day = 1;
     for (int i = 1; i <= 42; i++) {
       if (i >= startDay && day <= length) {
-        monthGrid.add(new JLabel(String.valueOf(day), JLabel.CENTER));
+        LocalDate date = month.atDay(day);
+
+        JButton dayButton = new JButton(String.valueOf(day));
+        dayButton.setMargin(new Insets(1, 1, 1, 1));
+        dayButton.setFocusPainted(false);
+
+        monthGrid.add(new JLabel(String.valueOf(date.getDayOfMonth()), JLabel.CENTER));
+        //dayButton.setActionCommand("cal-events-on-day-" + date.toString());
+        //dayButton.addActionListener(commandListener);
+
+        //monthGrid.add(dayButton);
+
         day++;
       } else {
         monthGrid.add(new JLabel(""));
@@ -100,16 +143,85 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
   }
 
   @Override
+  public String[] promptNewCalendar() {
+    JPanel panel = new JPanel(new GridLayout(2, 2));
+
+    panel.add(new JLabel("Calendar Name:"));
+    JTextField nameField = new JTextField();
+    panel.add(nameField);
+
+    panel.add(new JLabel("Timezone:"));
+    String[] zones = ZoneId.getAvailableZoneIds()
+        .stream()
+        .sorted()
+        .toArray(String[]::new);
+    JComboBox<String> timezoneBox = new JComboBox<>(zones);
+    panel.add(timezoneBox);
+
+    int result = JOptionPane.showConfirmDialog(
+        this, panel, "Create New Calendar",
+        JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+    //user cancel
+    if (result != JOptionPane.OK_OPTION) {
+      return null;
+    }
+
+    String name = nameField.getText().trim();
+    String tz = (String) timezoneBox.getSelectedItem();
+
+    if (name.isEmpty() || Objects.requireNonNull(tz).isEmpty()) {
+      showError("Both fields must be filled.");
+      return null;
+    }
+
+    return new String[]{name, tz};
+  }
+
+  @Override
+  public void addCalendarToSelector(String name) {
+    calendarSelector.addItem(name);
+  }
+
+  @Override
+  public void editCalendarInSelector(String ogName, String newName) {
+    int count = calendarSelector.getItemCount();
+    for (int i = 0; i < count; i++) {
+      String item = calendarSelector.getItemAt(i);
+      if (item.equals(ogName)) {
+        calendarSelector.insertItemAt(newName, i);
+        calendarSelector.removeItemAt(i + 1);
+        calendarSelector.setSelectedItem(newName);
+        return;
+      }
+    }
+  }
+
+  @Override
+  public void selectCalendarOnCalendarSelector(String name) {
+    calendarSelector.setSelectedItem(name);
+  }
+
+  @Override
+  public String getSelectedCalendarName() {
+    return (String) calendarSelector.getSelectedItem();
+  }
+
+  @Override
   public void setCommandButtonListener(ActionListener listener) {
     prevMonthBtn.setActionCommand("prev-month");
     nextMonthBtn.setActionCommand("next-month");
     createEventBtn.setActionCommand("create-event");
     createCalendarBtn.setActionCommand("create-calendar");
+    calendarSelector.setActionCommand("select-calendar");
+    editCalendarBtn.setActionCommand("edit-calendar");
 
     prevMonthBtn.addActionListener(listener);
     nextMonthBtn.addActionListener(listener);
     createEventBtn.addActionListener(listener);
     createCalendarBtn.addActionListener(listener);
+    editCalendarBtn.addActionListener(listener);
+    calendarSelector.addActionListener(listener);
   }
 
   @Override
@@ -118,12 +230,56 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
         message, "Error", JOptionPane.ERROR_MESSAGE);
   }
 
-  /**
-   * Change the active calendar title.
-   *
-   * @param name of new active calendar.
-   */
+  @Override
+  public void showMessage(String message) {
+    JOptionPane.showMessageDialog(
+        this, message,
+        "Message",
+        JOptionPane.INFORMATION_MESSAGE
+    );
+  }
+
+  @Override
   public void setActiveCalendarName(String name) {
     activeCalendarLabel.setText("Current Calendar: " + name);
+  }
+
+  @Override
+  public void setActiveCalendarTimezone(String tz) {
+    activeCalendarTzLabel.setText("Timezone: " + tz);
+  }
+
+  @Override
+  public String[] displayEditCalendar(String calendarName, String calendarTz) {
+    JPanel panel = new JPanel(new GridLayout(2, 2));
+
+    panel.add(new JLabel("Calendar Name:"));
+    JTextField nameField = new JTextField(calendarName);
+    panel.add(nameField);
+
+    panel.add(new JLabel("Timezone:"));
+    String[] zones = ZoneId.getAvailableZoneIds()
+        .stream()
+        .sorted()
+        .toArray(String[]::new);
+    JComboBox<String> timezoneBox = new JComboBox<>(zones);
+    timezoneBox.setSelectedItem(calendarTz);
+    panel.add(timezoneBox);
+
+    int result = JOptionPane.showConfirmDialog(
+        this,
+        panel,
+        "Edit Calendar",
+        JOptionPane.OK_CANCEL_OPTION,
+        JOptionPane.PLAIN_MESSAGE
+    );
+
+    if (result != JOptionPane.OK_OPTION) {
+      return new String[]{calendarName, calendarName, calendarTz};
+    }
+    String newName = nameField.getText().trim();
+    String newTz = (String) timezoneBox.getSelectedItem();
+
+    return new String[]{calendarName, newName, newTz};
   }
 }
