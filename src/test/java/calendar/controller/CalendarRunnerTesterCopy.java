@@ -158,8 +158,60 @@ public class CalendarRunnerTesterCopy extends CalendarRunnerTester {
         + "- Team Meeting from 10:00 to 11:00\n"
         + "\n"
         + "Events for calendar: hobbies\n"
-        +
-        "Events on 2025-05-05:"));
+        + "Events on 2025-05-05:"));
+  }
+
+  /**
+   * Verifies copying an event inside the same calendar places it on the new date as expected.
+   */
+  @Test
+  public void copyEventWithinSameCalendarCreatesNewEntry() throws Exception {
+    String input = "create calendar --name cal --timezone America/New_York\n"
+        + "use calendar --name cal\n"
+        + "create event \"Event 1\" from 2025-05-05T00:00 to 2025-05-05T01:00\n"
+        + "create event \"Event 2\" from 2025-06-06T02:00 to 2025-06-06T03:00\n"
+        + "copy event \"Event 1\" on 2025-05-05T00:00 --target cal to 2025-06-06T00:00\n"
+        + "print events on 2025-06-06\n"
+        + "exit\n";
+    String result = runWithInput(input);
+
+    assertTrue(result.contains("Events for calendar: cal\n"
+        + "Events on 2025-06-06:\n"
+        + "- Event 1 from 00:00 to 01:00\n"
+        + "- Event 2 from 02:00 to 03:00"));
+  }
+
+  /**
+   * Ensures a copied series retains its identity so an ENTIRE_SERIES edit affects every copy.
+   */
+  @Test
+  public void copySeriesRetainsIdentityAcrossCalendars() throws Exception {
+    String input = "create calendar --name source --timezone America/New_York\n"
+        + "create calendar --name dest --timezone America/New_York\n"
+        + "use calendar --name source\n"
+        + "create event Standup from 2025-05-05T09:00 to 2025-05-05T10:00 repeats MW for 3 times\n"
+        + "copy events between 2025-05-05 and 2025-05-12 --target dest to 2025-06-02\n"
+        + "use calendar --name dest\n"
+        + "print events on 2025-06-02\n"
+        + "print events on 2025-06-04\n"
+        + "edit series subject Standup from 2025-06-02T09:00 with \"Standup Copied\"\n"
+        + "print events on 2025-06-02\n"
+        + "print events on 2025-06-04\n"
+        + "exit\n";
+    String result = runWithInput(input);
+
+    assertTrue(result.contains("Events for calendar: dest\n"
+        + "Events on 2025-06-02:\n"
+        + "- Standup from 09:00 to 10:00"));
+    assertTrue(result.contains("Events for calendar: dest\n"
+        + "Events on 2025-06-04:\n"
+        + "- Standup from 09:00 to 10:00"));
+    assertTrue(result.contains("Events for calendar: dest\n"
+        + "Events on 2025-06-02:\n"
+        + "- Standup Copied from 09:00 to 10:00"));
+    assertTrue(result.contains("Events for calendar: dest\n"
+        + "Events on 2025-06-04:\n"
+        + "- Standup Copied from 09:00 to 10:00"));
   }
 
   /**
