@@ -181,7 +181,13 @@ public class CalendarGuiController implements CalendarGuiFeatures {
     List<Event> events = getActiveCalendar().eventsOn(selectedDate);
     List<GuiEventSummary> summaries = new ArrayList<>();
     for (Event event : events) {
-      summaries.add(new GuiEventSummary(event.subject(), event.start(), event.end()));
+      summaries.add(new GuiEventSummary(
+          event.subject(),
+          event.start(),
+          event.end(),
+          event.description().orElse(""),
+          event.location().orElse(""),
+          event.status()));
     }
     view.displayEvents(selectedDate, summaries);
   }
@@ -197,6 +203,17 @@ public class CalendarGuiController implements CalendarGuiFeatures {
     if (knownCalendars.add(name)) {
       view.addCalendarToSelector(name);
     }
+  }
+
+  /**
+   * Updates the known calendar cache when a calendar is renamed.
+   *
+   * @param oldName previous name.
+   * @param newName new name.
+   */
+  public void renameKnownCalendar(String oldName, String newName) {
+    knownCalendars.remove(oldName);
+    knownCalendars.add(newName);
   }
 
   /**

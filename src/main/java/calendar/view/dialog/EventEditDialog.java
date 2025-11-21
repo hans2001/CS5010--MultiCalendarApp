@@ -4,6 +4,8 @@ import calendar.controller.EditProperty;
 import calendar.controller.service.EventEditRequest;
 import java.awt.Component;
 import java.awt.GridLayout;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
@@ -38,15 +40,26 @@ public class EventEditDialog {
     JTextField valueField = new JTextField(20);
     EditScopeChoice[] scopes = EditScopeChoice.values();
     JComboBox<EditScopeChoice> scopeBox = new JComboBox<>(scopes);
+    JLabel currentValueLabel = new JLabel();
+    JLabel helpLabel = new JLabel();
 
     JPanel panel = new JPanel(new GridLayout(0, 1, 5, 5));
     panel.add(new JLabel("Editing event: " + subject));
     panel.add(new JLabel("Property:"));
     panel.add(propertyBox);
+    panel.add(new JLabel("Current value:"));
+    panel.add(currentValueLabel);
     panel.add(new JLabel("New value:"));
     panel.add(valueField);
+    panel.add(helpLabel);
     panel.add(new JLabel("Scope:"));
     panel.add(scopeBox);
+
+    propertyBox.addActionListener(e ->
+        updateHints((EditProperty) propertyBox.getSelectedItem(),
+            valueField, currentValueLabel, helpLabel, subject, start, end));
+    updateHints((EditProperty) propertyBox.getSelectedItem(),
+        valueField, currentValueLabel, helpLabel, subject, start, end);
 
     int result = JOptionPane.showConfirmDialog(parent, panel, "Edit Event",
         JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
@@ -76,6 +89,53 @@ public class EventEditDialog {
     }
 
     return Optional.of(builder.build());
+  }
+
+  private void updateHints(EditProperty property,
+                           JTextField valueField,
+                           JLabel currentValueLabel,
+                           JLabel helpLabel,
+                           String subject,
+                           LocalDateTime start,
+                           LocalDateTime end) {
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
+    switch (property) {
+      case SUBJECT:
+        currentValueLabel.setText(subject);
+        helpLabel.setText("Enter the new title for this event.");
+        valueField.setText(subject);
+        break;
+      case START:
+        currentValueLabel.setText(start.format(formatter));
+        helpLabel.setText("Use 24hr ISO format, e.g. 2025-03-10T09:30");
+        valueField.setText(start.format(formatter));
+        break;
+      case END:
+        currentValueLabel.setText(end.format(formatter));
+        helpLabel.setText("Use 24hr ISO format, e.g. 2025-03-10T10:30");
+        valueField.setText(end.format(formatter));
+        break;
+      case DESCRIPTION:
+        currentValueLabel.setText("(free-form text)");
+        helpLabel.setText("Enter the new description.");
+        valueField.setText("");
+        break;
+      case LOCATION:
+        currentValueLabel.setText("(free-form text)");
+        helpLabel.setText("Enter the new location.");
+        valueField.setText("");
+        break;
+      case STATUS:
+        currentValueLabel.setText("Allowed: PUBLIC or PRIVATE");
+        helpLabel.setText("Type PUBLIC or PRIVATE.");
+        valueField.setText("");
+        break;
+      default:
+        currentValueLabel.setText("");
+        helpLabel.setText("");
+        valueField.setText("");
+        break;
+    }
   }
 
   /**

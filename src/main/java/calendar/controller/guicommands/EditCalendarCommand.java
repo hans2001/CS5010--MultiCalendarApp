@@ -41,6 +41,7 @@ public class EditCalendarCommand implements CalendarGuiCommand {
 
     if (!found.getName().equals(newName)) {
       manager.editCalendarName(ogName, newName);
+      controller.renameKnownCalendar(ogName, newName);
       view.setActiveCalendarName(newName);
       view.editCalendarInSelector(ogName, newName);
     }

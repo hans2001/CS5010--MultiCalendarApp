@@ -36,6 +36,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
@@ -59,6 +60,7 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
   private final JLabel selectedDateLabel = new JLabel("Select a date to view events");
   private final DefaultListModel<GuiEventSummary> eventsModel = new DefaultListModel<>();
   private final JList<GuiEventSummary> eventsList = new JList<>(eventsModel);
+  private final JTextArea eventDetailArea = new JTextArea("Select an event to view details.");
   private boolean suppressCalendarSelection = false;
   private CalendarGuiFeatures features;
   private YearMonth currentMonth;
@@ -102,6 +104,12 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
     JPanel east = new JPanel(new BorderLayout());
     east.add(selectedDateLabel, BorderLayout.NORTH);
     east.add(new JScrollPane(eventsList), BorderLayout.CENTER);
+    eventDetailArea.setEditable(false);
+    eventDetailArea.setLineWrap(true);
+    eventDetailArea.setWrapStyleWord(true);
+    eventDetailArea.setBorder(BorderFactory.createTitledBorder("Details"));
+    eventDetailArea.setBackground(getBackground());
+    east.add(eventDetailArea, BorderLayout.SOUTH);
     add(east, BorderLayout.EAST);
 
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -177,6 +185,13 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
       eventsModel.addElement(summary);
     }
     eventsList.setEnabled(!events.isEmpty());
+    if (events.isEmpty()) {
+      eventsList.clearSelection();
+      updateEventDetails(null);
+    } else {
+      eventsList.setSelectedIndex(0);
+      updateEventDetails(eventsModel.getElementAt(0));
+    }
   }
 
   @Override
@@ -216,6 +231,11 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
       Object selected = calendarSelector.getSelectedItem();
       if (selected != null) {
         this.features.calendarSelected(selected.toString());
+      }
+    });
+    eventsList.addListSelectionListener(e -> {
+      if (!e.getValueIsAdjusting()) {
+        updateEventDetails(eventsList.getSelectedValue());
       }
     });
 
@@ -360,5 +380,20 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
         }
       }
     });
+  }
+
+  private void updateEventDetails(GuiEventSummary summary) {
+    if (summary == null) {
+      eventDetailArea.setText("Select an event to view details.");
+      return;
+    }
+    StringBuilder sb = new StringBuilder();
+    sb.append("Subject: ").append(summary.subject()).append('\n');
+    sb.append("Start: ").append(summary.start()).append('\n');
+    sb.append("End: ").append(summary.end()).append('\n');
+    sb.append("Status: ").append(summary.status()).append('\n');
+    sb.append("Location: ").append(summary.location().orElse("(none)")).append('\n');
+    sb.append("Description: ").append(summary.description().orElse("(none)"));
+    eventDetailArea.setText(sb.toString());
   }
 }

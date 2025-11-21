@@ -109,6 +109,28 @@ public class InMemoryCalendar implements CalendarApi {
   }
 
   /**
+   * When editing a single event's start time, keep its duration unless the user explicitly
+   * supplied a new end time. This mirrors how recurring edits behave and avoids zero-length
+   * events when only the start is moved.
+   */
+  private static EventPatch preserveDurationForSingle(Event current, EventPatch patch) {
+    if (patch.start.isEmpty() || patch.end.isPresent()) {
+      return patch;
+    }
+
+    EventPatch adjusted = new EventPatch();
+    adjusted.subject = patch.subject;
+    adjusted.description = patch.description;
+    adjusted.location = patch.location;
+    adjusted.status = patch.status;
+    adjusted.start = patch.start;
+
+    Duration duration = Duration.between(current.start(), current.end());
+    adjusted.end = Optional.of(patch.start.get().plus(duration));
+    return adjusted;
+  }
+
+  /**
    * Creates a calendar with settings (all-day window, default status).
    *
    * @param settings configuration for service policy
@@ -214,7 +236,8 @@ public class InMemoryCalendar implements CalendarApi {
           if (sidOpt.isPresent() && changesStart) {
             seriesIndex.detach(anchor.id());
           }
-          applier.apply(anchor.id(), patch);
+          EventPatch singlePatch = preserveDurationForSingle(anchor, patch);
+          applier.apply(anchor.id(), singlePatch);
           break;
         }
 
