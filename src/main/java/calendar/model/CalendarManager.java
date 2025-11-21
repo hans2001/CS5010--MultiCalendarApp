@@ -141,13 +141,6 @@ public class CalendarManager {
     calendars.put(trimmedNewName, calendar);
   }
 
-  /** Updates a calendar's timezone using a string identifier. */
-  public void editCalendarTimezone(String name, String timezone) {
-    Objects.requireNonNull(name, "name cannot be null");
-    Objects.requireNonNull(timezone, "timezone cannot be null");
-    getCalendar(name.trim()).setZoneId(timezone);
-  }
-
   /** Updates a calendar's timezone using a {@link ZoneId}. */
   public void editCalendarTimezone(String name, ZoneId zoneId) {
     Objects.requireNonNull(name, "name cannot be null");

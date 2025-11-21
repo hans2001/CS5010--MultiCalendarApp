@@ -103,23 +103,6 @@ public class TimeZoneInMemoryCalendar implements TimeZoneInMemoryCalendarInterfa
   }
 
   /**
-   * Sets the calendar's timezone.
-   *
-   * @param timeZoneId the new timezone in IANA format (e.g., "America/New_York").
-   * @throws IllegalArgumentException if the timezone is invalid.
-   */
-  public void setZoneId(String timeZoneId) {
-    if (timeZoneId == null) {
-      throw new IllegalArgumentException("timeZoneId cannot be null");
-    }
-    try {
-      this.zoneId = ZoneId.of(timeZoneId);
-    } catch (DateTimeException e) {
-      throw new IllegalArgumentException("Unsupported timezone: " + timeZoneId, e);
-    }
-  }
-
-  /**
    * Sets the calendar's timezone using a ZoneId.
    *
    * @param zoneId the new timezone.

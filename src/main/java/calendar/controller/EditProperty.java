@@ -7,7 +7,7 @@ import java.util.Optional;
 /**
  * Properties that can be edited via controller commands.
  */
-enum EditProperty {
+public enum EditProperty {
   SUBJECT,
   START,
   END,
@@ -15,7 +15,13 @@ enum EditProperty {
   LOCATION,
   STATUS;
 
-  static Optional<EditProperty> from(String s) {
+  /**
+   * Parses a property identifier (e.g., "subject") into an {@link EditProperty}.
+   *
+   * @param s the raw property string from user input.
+   * @return the matching property if recognized.
+   */
+  public static Optional<EditProperty> from(String s) {
     Objects.requireNonNull(s, "property cannot be null");
     switch (s.trim().toLowerCase(Locale.ROOT)) {
       case "subject":
@@ -35,5 +41,3 @@ enum EditProperty {
     }
   }
 }
-
-

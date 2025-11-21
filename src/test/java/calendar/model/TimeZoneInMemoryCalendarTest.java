@@ -52,20 +52,6 @@ public final class TimeZoneInMemoryCalendarTest {
   }
 
   @Test
-  public void setZoneIdStringRejectsNull() {
-    final TimeZoneInMemoryCalendar calendar =
-        new TimeZoneInMemoryCalendar("America/New_York", "Work");
-    assertThrows(IllegalArgumentException.class, () -> calendar.setZoneId((String) null));
-  }
-
-  @Test
-  public void setZoneIdStringRejectsUnsupportedTimezone() {
-    final TimeZoneInMemoryCalendar calendar =
-        new TimeZoneInMemoryCalendar("America/New_York", "Work");
-    assertThrows(IllegalArgumentException.class, () -> calendar.setZoneId("Invalid/Zone"));
-  }
-
-  @Test
   public void setZoneIdObjectRejectsNull() {
     final TimeZoneInMemoryCalendar calendar =
         new TimeZoneInMemoryCalendar("America/New_York", "Work");

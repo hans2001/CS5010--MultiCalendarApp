@@ -75,9 +75,6 @@ public final class CalendarManagerTest {
     TimeZoneInMemoryCalendarInterface calendar =
         manager.createCalendar("School", "America/New_York");
 
-    manager.editCalendarTimezone("School", "Europe/Paris");
-    assertEquals(ZoneId.of("Europe/Paris"), calendar.getZoneId());
-
     manager.editCalendarTimezone("School", ZoneId.of("Asia/Tokyo"));
     assertEquals(ZoneId.of("Asia/Tokyo"), calendar.getZoneId());
   }
@@ -114,13 +111,6 @@ public final class CalendarManagerTest {
     TimeZoneInMemoryCalendarInterface calendar =
         manager.createCalendar("Work", "America/New_York");
     assertEquals(calendar, manager.getCalendar("  Work  "));
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void editCalendarTimezone_invalidZone_rethrows() {
-    CalendarManager manager = new CalendarManager();
-    manager.createCalendar("Work", "America/New_York");
-    manager.editCalendarTimezone("Work", "Not/AZone");
   }
 
   @Test(expected = NotFoundException.class)
