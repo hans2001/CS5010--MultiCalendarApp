@@ -1,6 +1,5 @@
 package calendar.view;
 
-import java.awt.event.ActionListener;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
@@ -46,11 +45,11 @@ public interface CalendarGuiViewInterface {
   Optional<String> promptForCreateEvent(LocalDate date);
 
   /**
-   * Attaches the controller as the button listener.
+   * Hooks up high-level GUI features.
    *
-   * @param actionEvent shared listener.
+   * @param features controller callbacks.
    */
-  void setCommandButtonListener(ActionListener actionEvent);
+  void setFeatures(CalendarGuiFeatures features);
 
   /**
    * Displays an error dialog.

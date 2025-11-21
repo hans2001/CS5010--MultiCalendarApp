@@ -15,9 +15,8 @@ import calendar.model.config.CalendarSettings;
 import calendar.model.domain.Event;
 import calendar.model.exception.ConflictException;
 import calendar.model.exception.ValidationException;
+import calendar.view.CalendarGuiFeatures;
 import calendar.view.CalendarGuiViewInterface;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
@@ -32,7 +31,7 @@ import java.util.Set;
 /**
  * Controller for the GUI view.
  */
-public class CalendarGuiController implements ActionListener {
+public class CalendarGuiController implements CalendarGuiFeatures {
   private final CalendarGuiViewInterface view;
   private final CalendarManager calendarManager;
   private GuiCalendar inUseGuiCalendar;
@@ -53,7 +52,7 @@ public class CalendarGuiController implements ActionListener {
     this.inUseGuiCalendar = inUseCalendar;
 
     bindCommands();
-    view.setCommandButtonListener(this);
+    view.setFeatures(this);
 
     knownCalendars.add(inUseCalendar.getName());
     view.addCalendarToSelector(inUseCalendar.getName());
@@ -76,23 +75,46 @@ public class CalendarGuiController implements ActionListener {
   }
 
   @Override
-  public void actionPerformed(ActionEvent e) {
-    String cmdName = e.getActionCommand();
-    if (cmdName.startsWith("select-day-")) {
-      handleSelectDay(LocalDate.parse(cmdName.substring("select-day-".length())));
-      return;
-    }
-    if ("create-event".equals(cmdName)) {
-      handleCreateEvent();
-      return;
-    }
+  public void goToPreviousMonth() {
+    executeCommand("prev-month");
+  }
 
-    CalendarGuiCommand cmd = commandMap.get(cmdName);
+  @Override
+  public void goToNextMonth() {
+    executeCommand("next-month");
+  }
+
+  @Override
+  public void requestEventCreation() {
+    handleCreateEvent();
+  }
+
+  @Override
+  public void requestCalendarCreation() {
+    executeCommand("create-calendar");
+  }
+
+  @Override
+  public void requestCalendarEdit() {
+    executeCommand("edit-calendar");
+  }
+
+  @Override
+  public void calendarSelected(String name) {
+    executeCommand("select-calendar");
+  }
+
+  @Override
+  public void daySelected(LocalDate date) {
+    handleSelectDay(date);
+  }
+
+  private void executeCommand(String name) {
+    CalendarGuiCommand cmd = commandMap.get(name);
     if (cmd == null) {
-      view.showError("Unknown command: " + cmdName);
+      view.showError("Unknown command: " + name);
       return;
     }
-
     cmd.run(calendarManager, inUseGuiCalendar, this, view);
   }
 
