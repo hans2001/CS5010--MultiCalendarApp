@@ -1,5 +1,6 @@
 package calendar.controller.guicommands;
 
+import calendar.controller.CalendarGuiController;
 import calendar.model.CalendarManager;
 import calendar.model.GuiCalendarInterface;
 import calendar.model.TimeZoneInMemoryCalendarInterface;
@@ -11,7 +12,8 @@ import calendar.view.CalendarGuiViewInterface;
 public class CreateCalendarCommand implements CalendarGuiCommand {
 
   @Override
-  public void run(CalendarManager manager, GuiCalendarInterface inUse,
+  public void run(CalendarManager manager, GuiCalendarInterface current,
+                  CalendarGuiController controller,
                   CalendarGuiViewInterface view) {
 
     String[] data = view.promptNewCalendar();
@@ -27,7 +29,7 @@ public class CreateCalendarCommand implements CalendarGuiCommand {
       view.showMessage("Created calendar with name \""
           +
           name + "\" with timezone " + tz);
-      view.addCalendarToCalendarList(name);
+      view.addCalendarToSelector(name);
     } catch (Exception e) {
       view.showError("Could not create calendar: " + e.getMessage());
     }

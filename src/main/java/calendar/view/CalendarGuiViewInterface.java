@@ -66,7 +66,15 @@ public interface CalendarGuiViewInterface {
    *
    * @param name of new calendar.
    */
-  void addCalendarToCalendarList(String name);
+  void addCalendarToSelector(String name);
+
+  /**
+   * When a calendar name changes, change that name in the selector.
+   *
+   * @param ogName of old calendar.
+   * @param newName of new calendar.
+   */
+  void editCalendarInSelector(String ogName, String newName);
 
   /**
    * Set the selector list to this calendar name.

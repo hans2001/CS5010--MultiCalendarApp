@@ -99,9 +99,7 @@ public class CalendarRunner {
     ZoneId systemZone = ZoneId.systemDefault();
     TimeZoneInMemoryCalendarInterface inUseCalendar = calendarManager.createCalendar(
         "Default Calendar", systemZone.toString());
-    GuiCalendar guiCalendar = new GuiCalendar(
-        inUseCalendar.getZoneId().getId(),
-        inUseCalendar.getName());
+    GuiCalendar guiCalendar = new GuiCalendar(inUseCalendar);
 
     CalendarGuiController controller = new CalendarGuiController(settings,
         view, guiCalendar, calendarManager);

@@ -1,6 +1,8 @@
 package calendar.controller.guicommands;
 
+import calendar.controller.CalendarGuiController;
 import calendar.model.CalendarManager;
+import calendar.model.GuiCalendar;
 import calendar.model.GuiCalendarInterface;
 import calendar.model.TimeZoneInMemoryCalendarInterface;
 import calendar.model.exception.NotFoundException;
@@ -15,43 +17,33 @@ public class EditCalendarCommand implements CalendarGuiCommand {
    * Grabs the user changes and updates the calendar.
    *
    * @param manager calendar manager.
-   * @param inUseCalendar the current calendar in use.
+   * @param current the current calendar in use.
    * @param view the view.
    */
   @Override
-  public void run(CalendarManager manager, GuiCalendarInterface inUseCalendar,
+  public void run(CalendarManager manager, GuiCalendarInterface current,
+                  CalendarGuiController controller,
                   CalendarGuiViewInterface view) {
     String[] ret = view.displayEditCalendar(
-        inUseCalendar.getName(),
-        inUseCalendar.getZoneId().toString());
+        current.getName(),
+        current.getZoneId());
     String ogName = ret[0];
     String newName = ret[1];
     String newTimeZone = ret[2];
 
-    boolean sucessfulNameChange = false;
-
     TimeZoneInMemoryCalendarInterface found = manager.getCalendar(ogName);
+
+    //Update the Timezone (if changed)
+    if (!found.getZoneId().toString().equals(newTimeZone)) {
+      manager.editCalendarTimezone(ogName, ZoneId.of(newTimeZone));
+      view.setActiveCalendarTimezone(newTimeZone);
+    }
+
+    //Update the name (if changed)
     if (!found.getName().equals(newName)) {
-      try {
-        manager.editCalendarName(ogName, newName);
-        sucessfulNameChange = true;
-      } catch (NotFoundException e) {
-        view.showError("Edit Error " + e.getMessage());
-      }
+      manager.editCalendarName(ogName, newName);
+      view.setActiveCalendarName(newName);
+      view.editCalendarInSelector(ogName, newName);
     }
-
-    ZoneId updatedZone = ZoneId.of(newTimeZone);
-    if (!found.getZoneId().equals(ZoneId.of(newTimeZone))) {
-      if (sucessfulNameChange) {
-        manager.editCalendarTimezone(newName, updatedZone);
-      } else {
-        manager.editCalendarTimezone(ogName, updatedZone);
-      }
-    }
-
-    //Update calendar name + timezone (only if already selected)
-
-    //Update dropdown list (if the name changed only)
-    
   }
 }

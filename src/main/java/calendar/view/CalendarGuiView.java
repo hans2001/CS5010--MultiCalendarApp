@@ -33,7 +33,7 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
   private JButton createEventBtn;
   private JButton createCalendarBtn;
   private JLabel monthYearTitle;
-  private ActionListener commandListener;
+  private JButton editCalendarBtn;
 
   private JLabel activeCalendarTzLabel;
   private JPanel monthGrid;
@@ -52,6 +52,7 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
     nextMonthBtn = new JButton(">");
     createEventBtn = new JButton("New Event");
     createCalendarBtn = new JButton("New Calendar");
+    editCalendarBtn = new JButton("Edit Calendar");
 
     activeCalendarLabel = new JLabel("Current Calendar: ");
     activeCalendarTzLabel = new JLabel("Timezone: ");
@@ -66,6 +67,7 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
     top.add(nextMonthBtn);
     top.add(createEventBtn);
     top.add(createCalendarBtn);
+    top.add(editCalendarBtn);
     top.add(activeCalendarLabel);
 
     // Calendar name + timezone below buttons
@@ -177,8 +179,22 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
   }
 
   @Override
-  public void addCalendarToCalendarList(String name) {
+  public void addCalendarToSelector(String name) {
     calendarSelector.addItem(name);
+  }
+
+  @Override
+  public void editCalendarInSelector(String ogName, String newName) {
+    int count = calendarSelector.getItemCount();
+    for (int i = 0; i < count; i++) {
+      String item = calendarSelector.getItemAt(i);
+      if (item.equals(ogName)) {
+        calendarSelector.insertItemAt(newName, i);
+        calendarSelector.removeItemAt(i + 1);
+        calendarSelector.setSelectedItem(newName);
+        return;
+      }
+    }
   }
 
   @Override
@@ -193,18 +209,18 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
 
   @Override
   public void setCommandButtonListener(ActionListener listener) {
-    this.commandListener = listener;
-
     prevMonthBtn.setActionCommand("prev-month");
     nextMonthBtn.setActionCommand("next-month");
     createEventBtn.setActionCommand("create-event");
     createCalendarBtn.setActionCommand("create-calendar");
     calendarSelector.setActionCommand("select-calendar");
+    editCalendarBtn.setActionCommand("edit-calendar");
 
     prevMonthBtn.addActionListener(listener);
     nextMonthBtn.addActionListener(listener);
     createEventBtn.addActionListener(listener);
     createCalendarBtn.addActionListener(listener);
+    editCalendarBtn.addActionListener(listener);
     calendarSelector.addActionListener(listener);
   }
 

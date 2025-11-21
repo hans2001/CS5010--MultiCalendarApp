@@ -5,7 +5,7 @@ import java.time.YearMonth;
 /**
  * Interface for Calendar with GUI features.
  */
-public interface GuiCalendarInterface extends TimeZoneInMemoryCalendarInterface {
+public interface GuiCalendarInterface {
   /**
    * Get the current month.
    */
@@ -20,4 +20,18 @@ public interface GuiCalendarInterface extends TimeZoneInMemoryCalendarInterface 
    * Get the previous month.
    */
   YearMonth getPreviousMonth();
+
+  /**
+   * Gets name.
+   *
+   * @return name of calendar.
+   */
+  String getName();
+
+  /**
+   * Gets tz.
+   *
+   * @return tz of calendar.
+   */
+  String getZoneId();
 }

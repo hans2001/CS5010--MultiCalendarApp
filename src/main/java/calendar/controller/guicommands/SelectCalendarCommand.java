@@ -1,6 +1,8 @@
 package calendar.controller.guicommands;
 
+import calendar.controller.CalendarGuiController;
 import calendar.model.CalendarManager;
+import calendar.model.GuiCalendar;
 import calendar.model.GuiCalendarInterface;
 import calendar.model.TimeZoneInMemoryCalendarInterface;
 import calendar.view.CalendarGuiViewInterface;
@@ -12,6 +14,7 @@ import java.time.YearMonth;
 public class SelectCalendarCommand implements CalendarGuiCommand {
   @Override
   public void run(CalendarManager manager, GuiCalendarInterface current,
+                  CalendarGuiController controller,
                   CalendarGuiViewInterface view) {
 
     String name = view.getSelectedCalendarName();
@@ -21,6 +24,8 @@ public class SelectCalendarCommand implements CalendarGuiCommand {
     view.setActiveCalendarName(name);
     view.setActiveCalendarTimezone(found.getZoneId().toString());
     view.drawMonth(YearMonth.now());
+
+    controller.setInUseCalendar(new GuiCalendar(found));
   }
 }
 
