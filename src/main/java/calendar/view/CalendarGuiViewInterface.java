@@ -1,5 +1,8 @@
 package calendar.view;
 
+import calendar.controller.service.EventCreationRequest;
+import calendar.controller.service.EventEditRequest;
+import calendar.view.model.GuiEventSummary;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
@@ -32,9 +35,9 @@ public interface CalendarGuiViewInterface {
    * Shows events for the given date in the side panel.
    *
    * @param date day being displayed.
-   * @param events formatted event lines.
+   * @param events summaries to display/select.
    */
-  void displayEvents(LocalDate date, List<String> events);
+  void displayEvents(LocalDate date, List<GuiEventSummary> events);
 
   /**
    * Prompts the user for event creation data prefilled with the date.
@@ -42,7 +45,15 @@ public interface CalendarGuiViewInterface {
    * @param date selected date.
    * @return CLI-style command or empty if cancelled/invalid.
    */
-  Optional<String> promptForCreateEvent(LocalDate date);
+  Optional<EventCreationRequest> promptForCreateEvent(LocalDate date);
+
+  /**
+   * Prompts the user about how to edit the selected event.
+   *
+   * @param summary event summary.
+   * @return CLI edit command or empty if cancelled/invalid.
+   */
+  Optional<EventEditRequest> promptForEditEvent(GuiEventSummary summary);
 
   /**
    * Hooks up high-level GUI features.

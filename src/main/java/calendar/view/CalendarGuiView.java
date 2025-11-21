@@ -1,6 +1,10 @@
 package calendar.view;
 
-import calendar.model.recurrence.Weekday;
+import calendar.controller.service.EventCreationRequest;
+import calendar.controller.service.EventEditRequest;
+import calendar.view.dialog.EventCreationDialog;
+import calendar.view.dialog.EventEditDialog;
+import calendar.view.model.GuiEventSummary;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -8,14 +12,10 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.Insets;
-import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
-import java.time.format.DateTimeParseException;
 import java.time.format.TextStyle;
 import java.util.List;
 import java.util.Locale;
@@ -24,19 +24,21 @@ import java.util.Optional;
 import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
+import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
-import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
+import javax.swing.ListSelectionModel;
 import javax.swing.SpinnerNumberModel;
 
 /**
@@ -46,6 +48,7 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
   private final JButton prevMonthBtn = new JButton("<");
   private final JButton nextMonthBtn = new JButton(">");
   private final JButton createEventBtn = new JButton("New Event");
+  private final JButton editEventBtn = new JButton("Edit Event");
   private final JButton createCalendarBtn = new JButton("New Calendar");
   private final JButton editCalendarBtn = new JButton("Edit Calendar");
   private final JComboBox<String> calendarSelector = new JComboBox<>();
@@ -54,7 +57,8 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
   private final JLabel activeCalendarTzLabel = new JLabel("Timezone: ");
   private final JPanel monthGrid = new JPanel(new GridLayout(7, 7));
   private final JLabel selectedDateLabel = new JLabel("Select a date to view events");
-  private final JTextArea eventsArea = new JTextArea(15, 25);
+  private final DefaultListModel<GuiEventSummary> eventsModel = new DefaultListModel<>();
+  private final JList<GuiEventSummary> eventsList = new JList<>(eventsModel);
   private boolean suppressCalendarSelection = false;
   private CalendarGuiFeatures features;
   private YearMonth currentMonth;
@@ -75,6 +79,7 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
     top.add(prevMonthBtn);
     top.add(nextMonthBtn);
     top.add(createEventBtn);
+    top.add(editEventBtn);
     top.add(createCalendarBtn);
     top.add(editCalendarBtn);
 
@@ -93,11 +98,10 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
 
     add(monthGrid, BorderLayout.CENTER);
 
-    eventsArea.setEditable(false);
-    eventsArea.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+    eventsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
     JPanel east = new JPanel(new BorderLayout());
     east.add(selectedDateLabel, BorderLayout.NORTH);
-    east.add(new JScrollPane(eventsArea), BorderLayout.CENTER);
+    east.add(new JScrollPane(eventsList), BorderLayout.CENTER);
     add(east, BorderLayout.EAST);
 
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -166,183 +170,23 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
   }
 
   @Override
-  public void displayEvents(LocalDate date, List<String> events) {
+  public void displayEvents(LocalDate date, List<GuiEventSummary> events) {
     selectedDateLabel.setText("Events on " + date);
-    eventsArea.setText(events.isEmpty() ? "No events." : String.join("\n", events));
+    eventsModel.clear();
+    for (GuiEventSummary summary : events) {
+      eventsModel.addElement(summary);
+    }
+    eventsList.setEnabled(!events.isEmpty());
   }
 
   @Override
-  public Optional<String> promptForCreateEvent(LocalDate date) {
-    final JTextField subjectField = new JTextField(20);
-    final JTextField startField = new JTextField("09:00");
-    final JTextField endField = new JTextField("10:00");
-    String[] patterns = {
-        "Single timed",
-        "Single all-day",
-        "Recurring timed (count)",
-        "Recurring timed (until date)",
-        "Recurring all-day (count)",
-        "Recurring all-day (until date)"
-    };
-    final JComboBox<String> patternBox = new JComboBox<>(patterns);
-    final DayOfWeek[] weekdays = DayOfWeek.values();
-    JCheckBox[] weekdayBoxes = new JCheckBox[weekdays.length];
-    JPanel weekdaysPanel = new JPanel(new GridLayout(1, 7));
-    for (int i = 0; i < weekdays.length; i++) {
-      weekdayBoxes[i] = new JCheckBox(weekdays[i].name().substring(0, 3));
-      weekdaysPanel.add(weekdayBoxes[i]);
-    }
-    JSpinner occurrencesSpinner = new JSpinner(new SpinnerNumberModel(5, 1, 500, 1));
-    JTextField untilDateField = new JTextField(date.plusWeeks(1).toString());
-
-    JPanel panel = new JPanel(new GridLayout(0, 1, 5, 5));
-    panel.add(new JLabel("Creating event on " + date));
-    panel.add(new JLabel("Pattern:"));
-    panel.add(patternBox);
-    panel.add(new JLabel("Subject:"));
-    panel.add(subjectField);
-    panel.add(new JLabel("Start time (HH:mm):"));
-    panel.add(startField);
-    panel.add(new JLabel("End time (HH:mm):"));
-    panel.add(endField);
-    panel.add(new JLabel("Weekdays:"));
-    panel.add(weekdaysPanel);
-    panel.add(new JLabel("Occurrences:"));
-    panel.add(occurrencesSpinner);
-    panel.add(new JLabel("Until date (yyyy-MM-dd):"));
-    panel.add(untilDateField);
-
-    ActionListener toggle = e -> {
-      final String choice = (String) patternBox.getSelectedItem();
-      final boolean timed = choice.contains("timed");
-      final boolean recurring = choice.contains("Recurring");
-      final boolean requiresCount = choice.contains("(count)");
-      final boolean requiresUntil = choice.contains("(until date)");
-      startField.setEnabled(timed);
-      endField.setEnabled(timed);
-      for (JCheckBox box : weekdayBoxes) {
-        box.setEnabled(recurring);
-        if (!recurring) {
-          box.setSelected(false);
-        }
-      }
-      occurrencesSpinner.setEnabled(requiresCount);
-      untilDateField.setEnabled(requiresUntil);
-    };
-    patternBox.addActionListener(toggle);
-    toggle.actionPerformed(null);
-
-    int result = JOptionPane.showConfirmDialog(
-        this, panel, "New Event", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-    if (result != JOptionPane.OK_OPTION) {
-      return Optional.empty();
-    }
-
-    String subject = subjectField.getText().trim();
-    if (subject.isEmpty()) {
-      JOptionPane.showMessageDialog(this, "Subject cannot be blank.",
-          "Invalid Input", JOptionPane.ERROR_MESSAGE);
-      return Optional.empty();
-    }
-
-    String choice = (String) patternBox.getSelectedItem();
-    if ("Single all-day".equals(choice)) {
-      return Optional.of(String.format("create event \"%s\" on %s",
-          escapeSubject(subject), date));
-    }
-
-    if (!choice.startsWith("Single")) {
-      String weekdayString = collectWeekdays(weekdayBoxes, weekdays);
-      if (weekdayString.isEmpty()) {
-        JOptionPane.showMessageDialog(this, "Select at least one weekday for recurring events.",
-            "Invalid Input", JOptionPane.ERROR_MESSAGE);
-        return Optional.empty();
-      }
-
-      if (choice.equals("Recurring timed (count)")) {
-        if (!validateTimes(startField, endField)) {
-          return Optional.empty();
-        }
-        int occurrences = (Integer) occurrencesSpinner.getValue();
-        return Optional.of(
-            String.format("create event \"%s\" from %sT%s to %sT%s repeats %s for %d times",
-                escapeSubject(subject), date, startField.getText().trim(),
-                date, endField.getText().trim(),
-                weekdayString, occurrences));
-      } else if (choice.equals("Recurring timed (until date)")) {
-        if (!validateTimes(startField, endField)) {
-          return Optional.empty();
-        }
-        if (!validateDateField(untilDateField, date)) {
-          return Optional.empty();
-        }
-        return Optional.of(
-            String.format("create event \"%s\" from %sT%s to %sT%s repeats %s until %s",
-                escapeSubject(subject), date, startField.getText().trim(),
-                date, endField.getText().trim(),
-                weekdayString, untilDateField.getText().trim()));
-      } else if (choice.equals("Recurring all-day (count)")) {
-        int occurrences = (Integer) occurrencesSpinner.getValue();
-        return Optional.of(String.format("create event \"%s\" on %s repeats %s for %d times",
-            escapeSubject(subject), date, weekdayString, occurrences));
-      } else if (choice.equals("Recurring all-day (until date)")) {
-        if (!validateDateField(untilDateField, date)) {
-          return Optional.empty();
-        }
-        return Optional.of(String.format("create event \"%s\" on %s repeats %s until %s",
-            escapeSubject(subject), date, weekdayString, untilDateField.getText().trim()));
-      }
-    }
-
-    // Single timed default
-    if (!validateTimes(startField, endField)) {
-      return Optional.empty();
-    }
-    return Optional.of(String.format("create event \"%s\" from %sT%s to %sT%s",
-        escapeSubject(subject), date, startField.getText().trim(),
-        date, endField.getText().trim()));
+  public Optional<EventCreationRequest> promptForCreateEvent(LocalDate date) {
+    return new EventCreationDialog(this, date).show();
   }
 
-  private boolean validateTimes(JTextField startField, JTextField endField) {
-    try {
-      LocalTime.parse(startField.getText().trim());
-      LocalTime.parse(endField.getText().trim());
-      return true;
-    } catch (DateTimeParseException ex) {
-      JOptionPane.showMessageDialog(this, "Time must be in HH:mm format.",
-          "Invalid Input", JOptionPane.ERROR_MESSAGE);
-      return false;
-    }
-  }
-
-  private boolean validateDateField(JTextField dateField, LocalDate startDate) {
-    try {
-      LocalDate target = LocalDate.parse(dateField.getText().trim());
-      if (target.isBefore(startDate)) {
-        JOptionPane.showMessageDialog(this, "Until date must be on or after " + startDate + ".",
-            "Invalid Input", JOptionPane.ERROR_MESSAGE);
-        return false;
-      }
-      return true;
-    } catch (DateTimeParseException ex) {
-      JOptionPane.showMessageDialog(this, "Date must be in yyyy-MM-dd format.",
-          "Invalid Input", JOptionPane.ERROR_MESSAGE);
-      return false;
-    }
-  }
-
-  private String collectWeekdays(JCheckBox[] boxes, DayOfWeek[] days) {
-    StringBuilder builder = new StringBuilder();
-    for (int i = 0; i < boxes.length; i++) {
-      if (boxes[i].isSelected()) {
-        builder.append(Weekday.from(days[i]));
-      }
-    }
-    return builder.toString();
-  }
-
-  private String escapeSubject(String subject) {
-    return subject.replace("\"", "'");
+  @Override
+  public Optional<EventEditRequest> promptForEditEvent(GuiEventSummary summary) {
+    return new EventEditDialog(this).show(summary.subject(), summary.start(), summary.end());
   }
 
   @Override
@@ -355,6 +199,14 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
     prevMonthBtn.addActionListener(e -> this.features.goToPreviousMonth());
     nextMonthBtn.addActionListener(e -> this.features.goToNextMonth());
     createEventBtn.addActionListener(e -> this.features.requestEventCreation());
+    editEventBtn.addActionListener(e -> {
+      GuiEventSummary selected = eventsList.getSelectedValue();
+      if (selected == null) {
+        showError("Select an event to edit.");
+      } else {
+        this.features.requestEventEdit(selected);
+      }
+    });
     createCalendarBtn.addActionListener(e -> this.features.requestCalendarCreation());
     editCalendarBtn.addActionListener(e -> this.features.requestCalendarEdit());
     calendarSelector.addActionListener(e -> {
@@ -484,6 +336,12 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
         () -> features.goToNextMonth());
     bindKeyStroke(root, "create-event", KeyStroke.getKeyStroke(KeyEvent.VK_N, 0),
         () -> features.requestEventCreation());
+    bindKeyStroke(root, "edit-event", KeyStroke.getKeyStroke(KeyEvent.VK_E, 0), () -> {
+      GuiEventSummary selected = eventsList.getSelectedValue();
+      if (selected != null) {
+        features.requestEventEdit(selected);
+      }
+    });
     bindKeyStroke(root, "create-calendar",
         KeyStroke.getKeyStroke(KeyEvent.VK_N, KeyEvent.CTRL_DOWN_MASK),
         () -> features.requestCalendarCreation());

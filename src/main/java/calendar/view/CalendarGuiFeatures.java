@@ -1,5 +1,6 @@
 package calendar.view;
 
+import calendar.view.model.GuiEventSummary;
 import java.time.LocalDate;
 
 /**
@@ -14,6 +15,9 @@ public interface CalendarGuiFeatures {
 
   /** User clicked "New Event". */
   void requestEventCreation();
+
+  /** User wants to edit the selected event. */
+  void requestEventEdit(GuiEventSummary summary);
 
   /** User clicked "New Calendar". */
   void requestCalendarCreation();

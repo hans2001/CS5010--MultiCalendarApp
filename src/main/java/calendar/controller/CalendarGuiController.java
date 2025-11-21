@@ -8,6 +8,7 @@ import calendar.controller.guicommands.PrevMonthCommand;
 import calendar.controller.guicommands.SelectCalendarCommand;
 import calendar.controller.service.CalendarFormService;
 import calendar.controller.service.EventCreationRequest;
+import calendar.controller.service.EventEditRequest;
 import calendar.model.CalendarManager;
 import calendar.model.GuiCalendar;
 import calendar.model.TimeZoneInMemoryCalendarInterface;
@@ -17,13 +18,13 @@ import calendar.model.exception.ConflictException;
 import calendar.model.exception.ValidationException;
 import calendar.view.CalendarGuiFeatures;
 import calendar.view.CalendarGuiViewInterface;
+import calendar.view.model.GuiEventSummary;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -90,6 +91,11 @@ public class CalendarGuiController implements CalendarGuiFeatures {
   }
 
   @Override
+  public void requestEventEdit(GuiEventSummary summary) {
+    handleEditEvent(summary);
+  }
+
+  @Override
   public void requestCalendarCreation() {
     executeCommand("create-calendar");
   }
@@ -130,14 +136,13 @@ public class CalendarGuiController implements CalendarGuiFeatures {
       return;
     }
 
-    Optional<String> request = view.promptForCreateEvent(selectedDate);
+    Optional<EventCreationRequest> request = view.promptForCreateEvent(selectedDate);
     if (request.isEmpty()) {
       return;
     }
 
     try {
-      EventCreationRequest parsed = formService.parseCreateEventCommand(request.get());
-      formService.applyCreateEvent(parsed, getActiveCalendar());
+      formService.applyCreateEvent(request.get(), getActiveCalendar());
       view.showMessage("Event created successfully.");
       refreshEvents();
     } catch (ValidationException e) {
@@ -149,20 +154,36 @@ public class CalendarGuiController implements CalendarGuiFeatures {
     }
   }
 
+  private void handleEditEvent(GuiEventSummary summary) {
+    Optional<EventEditRequest> command = view.promptForEditEvent(summary);
+    if (command.isEmpty()) {
+      return;
+    }
+
+    try {
+      formService.applyEditEvent(command.get(), getActiveCalendar());
+      view.showMessage("Event updated successfully.");
+      refreshEvents();
+    } catch (ValidationException e) {
+      view.showError("Invalid update values: " + e.getMessage());
+    } catch (ConflictException e) {
+      view.showError("Update failed due to event conflict: " + e.getMessage());
+    } catch (IllegalArgumentException e) {
+      view.showError(e.getMessage());
+    }
+  }
+
   private void refreshEvents() {
     if (selectedDate == null) {
       return;
     }
 
     List<Event> events = getActiveCalendar().eventsOn(selectedDate);
-    List<String> lines = new ArrayList<>();
+    List<GuiEventSummary> summaries = new ArrayList<>();
     for (Event event : events) {
-      lines.add(String.format(Locale.ROOT, "- %s from %s to %s",
-          event.subject(),
-          event.start().toLocalTime(),
-          event.end().toLocalTime()));
+      summaries.add(new GuiEventSummary(event.subject(), event.start(), event.end()));
     }
-    view.displayEvents(selectedDate, lines);
+    view.displayEvents(selectedDate, summaries);
   }
 
   private TimeZoneInMemoryCalendarInterface getActiveCalendar() {
