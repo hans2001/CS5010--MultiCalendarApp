@@ -1,0 +1,26 @@
+package calendar.controller.guicommands;
+
+import calendar.model.CalendarManager;
+import calendar.model.GuiCalendarInterface;
+import calendar.model.TimeZoneInMemoryCalendarInterface;
+import calendar.view.CalendarGuiViewInterface;
+import java.time.YearMonth;
+
+/**
+ * Selects a calendar from all calendars and sets it as the new one in use.
+ */
+public class SelectCalendarCommand implements CalendarGuiCommand {
+  @Override
+  public void run(CalendarManager manager, GuiCalendarInterface current,
+                  CalendarGuiViewInterface view) {
+
+    String name = view.getSelectedCalendarName();
+
+    TimeZoneInMemoryCalendarInterface found = manager.getCalendar(name);
+
+    view.setActiveCalendarName(name);
+    view.setActiveCalendarTimezone(found.getZoneId().toString());
+    view.drawMonth(YearMonth.now());
+  }
+}
+

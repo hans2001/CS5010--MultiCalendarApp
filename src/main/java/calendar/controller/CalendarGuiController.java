@@ -1,8 +1,10 @@
 package calendar.controller;
 
 import calendar.controller.guicommands.CalendarGuiCommand;
+import calendar.controller.guicommands.CreateCalendarCommand;
 import calendar.controller.guicommands.NextMonthCommand;
 import calendar.controller.guicommands.PrevMonthCommand;
+import calendar.controller.guicommands.SelectCalendarCommand;
 import calendar.model.CalendarManager;
 import calendar.model.GuiCalendar;
 import calendar.model.config.CalendarSettings;
@@ -11,6 +13,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Controller for the Gui.
@@ -42,6 +45,10 @@ public class CalendarGuiController implements ActionListener {
     view.setCommandButtonListener(this);
 
     view.drawMonth(inUseCalendar.getMonth());
+    view.setActiveCalendarName(inUseCalendar.getName());
+    view.setActiveCalendarTimezone(inUseCalendar.getZoneId().toString());
+    view.addCalendarToCalendarList(inUseCalendar.getName());
+    view.selectCalendarOnCalendarSelector(inUseCalendar.getName());
   }
 
   /**
@@ -50,6 +57,9 @@ public class CalendarGuiController implements ActionListener {
   private void bindCommands() {
     commandMap.put("prev-month", new PrevMonthCommand());
     commandMap.put("next-month", new NextMonthCommand());
+    commandMap.put("create-calendar", new CreateCalendarCommand());
+    commandMap.put("select-calendar", new SelectCalendarCommand());
+    commandMap.put("edit-calendar", new SelectCalendarCommand());
   }
 
   @Override
