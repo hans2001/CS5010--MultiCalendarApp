@@ -18,6 +18,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * A Calendar that has a timezone and name.
@@ -35,7 +36,7 @@ public class TimeZoneInMemoryCalendar implements TimeZoneInMemoryCalendarInterfa
    * Creates a TimeZoneInMemoryCalendar with a timezone.
    *
    * @param timeZoneId the timezone in IANA format (e.g., "America/New_York").
-   * @param name the name of the calendar.
+   * @param name       the name of the calendar.
    * @throws IllegalArgumentException if the time zone is not valid.
    */
   public TimeZoneInMemoryCalendar(String timeZoneId, String name) throws IllegalArgumentException {
@@ -148,9 +149,9 @@ public class TimeZoneInMemoryCalendar implements TimeZoneInMemoryCalendarInterfa
    *
    * <p>Example: Converting 2pm EST to PST results in 11am PST (same instant, different local time).
    *
-   * @param time the LocalDateTime to convert (interpreted in currentZoneId).
+   * @param time          the LocalDateTime to convert (interpreted in currentZoneId).
    * @param currentZoneId the timezone of the input time.
-   * @param newZoneId the target timezone.
+   * @param newZoneId     the target timezone.
    * @return the LocalDateTime in the target timezone (same instant, different local time).
    */
   @Override
@@ -160,19 +161,25 @@ public class TimeZoneInMemoryCalendar implements TimeZoneInMemoryCalendarInterfa
     return zonedResult.toLocalDateTime();
   }
 
-  /** Delegates to the underlying in-memory calendar. */
+  /**
+   * Delegates to the underlying in-memory calendar.
+   */
   @Override
   public List<Event> eventsOn(LocalDate date) {
     return delegate.eventsOn(date);
   }
 
-  /** Delegates to the underlying in-memory calendar. */
+  /**
+   * Delegates to the underlying in-memory calendar.
+   */
   @Override
   public List<Event> eventsOverlapping(LocalDateTime from, LocalDateTime to) {
     return delegate.eventsOverlapping(from, to);
   }
 
-  /** Delegates to the underlying in-memory calendar. */
+  /**
+   * Delegates to the underlying in-memory calendar.
+   */
   @Override
   public List<Event> allEvents() {
     return delegate.allEvents();
@@ -196,6 +203,11 @@ public class TimeZoneInMemoryCalendar implements TimeZoneInMemoryCalendarInterfa
   @Override
   public BusyStatus statusAt(LocalDateTime instant) {
     return delegate.statusAt(instant);
+  }
+
+  @Override
+  public Optional<SeriesId> seriesOfEvent(EventId eventId) {
+    return delegate.seriesOfEvent(eventId);
   }
 
 }

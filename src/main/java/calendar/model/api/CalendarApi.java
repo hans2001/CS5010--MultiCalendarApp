@@ -10,6 +10,7 @@ import calendar.model.exception.ValidationException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Calendar operations (model layer, EST timezone).
@@ -89,5 +90,13 @@ public interface CalendarApi {
    * @return list of all events sorted by start time
    */
   List<Event> allEvents();
+
+  /**
+   * Returns the series identifier an event belongs to, if any.
+   *
+   * @param eventId event identifier
+   * @return optional series identifier
+   */
+  Optional<SeriesId> seriesOfEvent(EventId eventId);
 
 }

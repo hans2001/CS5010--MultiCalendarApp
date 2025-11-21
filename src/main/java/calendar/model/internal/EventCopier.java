@@ -2,16 +2,25 @@ package calendar.model.internal;
 
 import calendar.model.TimeZoneInMemoryCalendarInterface;
 import calendar.model.api.EventDraft;
+import calendar.model.api.SeriesDraft;
 import calendar.model.domain.Event;
+import calendar.model.domain.SeriesId;
 import calendar.model.exception.ConflictException;
 import calendar.model.exception.NotFoundException;
 import calendar.model.exception.ValidationException;
+import calendar.model.recurrence.RecurrenceRule;
+import calendar.model.recurrence.Weekday;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -155,18 +164,11 @@ public final class EventCopier {
     Objects.requireNonNull(targetDate, "targetDate cannot be null");
 
     List<Event> eventsOnDate = sourceCalendar.eventsOn(date);
-    ZoneId sourceZone = sourceCalendar.getZoneId();
-    ZoneId targetZone = targetCalendar.getZoneId();
     long daysOffset = ChronoUnit.DAYS.between(date, targetDate);
 
-    for (Event sourceEvent : eventsOnDate) {
-      ConvertedTimes times = convertAndOffsetTimes(
-          sourceEvent.start(), sourceEvent.end(),
-          sourceZone, targetZone, targetCalendar, daysOffset);
-
-      EventDraft draft = createDraftFromEvent(sourceEvent, times.start(), times.end());
-      copyEventToCalendar(targetCalendar, draft);
-    }
+    List<PreparedEvent> prepared = prepareConvertedEvents(
+        eventsOnDate, daysOffset, sourceCalendar, targetCalendar);
+    copyPreparedEvents(prepared, targetCalendar);
   }
 
   /**
@@ -199,19 +201,108 @@ public final class EventCopier {
     LocalDateTime rangeEnd = endDate.plusDays(1).atStartOfDay();
 
     List<Event> overlappingEvents = sourceCalendar.eventsOverlapping(rangeStart, rangeEnd);
-    ZoneId sourceZone = sourceCalendar.getZoneId();
-    ZoneId targetZone = targetCalendar.getZoneId();
     long daysOffset = Duration
         .between(startDate.atStartOfDay(), targetStartDate.atStartOfDay())
         .toDays();
 
-    for (Event sourceEvent : overlappingEvents) {
-      ConvertedTimes times = convertAndOffsetTimes(
-          sourceEvent.start(), sourceEvent.end(),
-          sourceZone, targetZone, targetCalendar, daysOffset);
+    List<PreparedEvent> prepared = prepareConvertedEvents(
+        overlappingEvents, daysOffset, sourceCalendar, targetCalendar);
+    copyPreparedEvents(prepared, targetCalendar);
+  }
 
-      EventDraft draft = createDraftFromEvent(sourceEvent, times.start(), times.end());
+  private static List<PreparedEvent> prepareConvertedEvents(
+      List<Event> events,
+      long daysOffset,
+      TimeZoneInMemoryCalendarInterface sourceCalendar,
+      TimeZoneInMemoryCalendarInterface targetCalendar) {
+    ZoneId sourceZone = sourceCalendar.getZoneId();
+    ZoneId targetZone = targetCalendar.getZoneId();
+    List<PreparedEvent> prepared = new ArrayList<>(events.size());
+    for (Event sourceEvent : events) {
+      prepared.add(convertEventForTarget(sourceEvent, daysOffset,
+          sourceZone, targetZone, sourceCalendar, targetCalendar));
+    }
+    return prepared;
+  }
+
+  private static PreparedEvent convertEventForTarget(
+      Event sourceEvent,
+      long daysOffset,
+      ZoneId sourceZone,
+      ZoneId targetZone,
+      TimeZoneInMemoryCalendarInterface sourceCalendar,
+      TimeZoneInMemoryCalendarInterface targetCalendar) {
+    ConvertedTimes times = convertAndOffsetTimes(
+        sourceEvent.start(), sourceEvent.end(),
+        sourceZone, targetZone, targetCalendar, daysOffset);
+    Optional<SeriesId> seriesId = sourceCalendar.seriesOfEvent(sourceEvent.id());
+    return new PreparedEvent(sourceEvent, times.start(), times.end(), seriesId);
+  }
+
+  private static void copyPreparedEvents(
+      List<PreparedEvent> preparedEvents,
+      TimeZoneInMemoryCalendarInterface targetCalendar) {
+    if (preparedEvents.isEmpty()) {
+      return;
+    }
+    Map<SeriesId, List<PreparedEvent>> grouped = new LinkedHashMap<>();
+    List<PreparedEvent> singles = new ArrayList<>();
+    for (PreparedEvent entry : preparedEvents) {
+      if (entry.seriesId.isPresent()) {
+        grouped.computeIfAbsent(entry.seriesId.get(), sid -> new ArrayList<>()).add(entry);
+      } else {
+        singles.add(entry);
+      }
+    }
+    for (List<PreparedEvent> group : grouped.values()) {
+      copySeriesGroup(group, targetCalendar);
+    }
+    for (PreparedEvent single : singles) {
+      EventDraft draft = createDraftFromEvent(single.source, single.targetStart, single.targetEnd);
       copyEventToCalendar(targetCalendar, draft);
+    }
+  }
+
+  private static void copySeriesGroup(
+      List<PreparedEvent> group,
+      TimeZoneInMemoryCalendarInterface targetCalendar) {
+    if (group.isEmpty()) {
+      return;
+    }
+    group.sort(Comparator.comparing(entry -> entry.targetStart));
+    PreparedEvent first = group.get(0);
+
+    SeriesDraft draft = new SeriesDraft();
+    draft.subject = first.source.subject();
+    draft.startDate = first.targetStart.toLocalDate();
+    draft.allDay = false;
+    draft.startTime = Optional.of(first.targetStart.toLocalTime());
+    draft.endTime = Optional.of(first.targetEnd.toLocalTime());
+    draft.description = first.source.description();
+    draft.location = first.source.location();
+    draft.status = Optional.of(first.source.status());
+
+    EnumSet<Weekday> weekdays = EnumSet.noneOf(Weekday.class);
+    for (PreparedEvent preparedEvent : group) {
+      weekdays.add(Weekday.from(preparedEvent.targetStart.getDayOfWeek()));
+    }
+    draft.rule = new RecurrenceRule(weekdays, Optional.of(group.size()), Optional.empty());
+
+    targetCalendar.createSeries(draft);
+  }
+
+  private static final class PreparedEvent {
+    final Event source;
+    final LocalDateTime targetStart;
+    final LocalDateTime targetEnd;
+    final Optional<SeriesId> seriesId;
+
+    private PreparedEvent(Event source, LocalDateTime targetStart, LocalDateTime targetEnd,
+        Optional<SeriesId> seriesId) {
+      this.source = Objects.requireNonNull(source, "source");
+      this.targetStart = Objects.requireNonNull(targetStart, "targetStart");
+      this.targetEnd = Objects.requireNonNull(targetEnd, "targetEnd");
+      this.seriesId = Objects.requireNonNull(seriesId, "seriesId");
     }
   }
 

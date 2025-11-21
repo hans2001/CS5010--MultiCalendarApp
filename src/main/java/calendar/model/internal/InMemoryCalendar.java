@@ -280,4 +280,10 @@ public class InMemoryCalendar implements CalendarApi {
         .collect(Collectors.toList());
   }
 
+  @Override
+  public synchronized Optional<SeriesId> seriesOfEvent(EventId eventId) {
+    Objects.requireNonNull(eventId, "eventId");
+    return seriesIndex.seriesOf(eventId).map(SeriesId::new);
+  }
+
 }

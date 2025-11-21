@@ -18,11 +18,15 @@ import calendar.model.domain.SeriesId;
 import calendar.model.exception.ConflictException;
 import calendar.model.exception.NotFoundException;
 import calendar.model.exception.ValidationException;
+import calendar.model.recurrence.RecurrenceRule;
+import calendar.model.recurrence.Weekday;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Test;
@@ -94,6 +98,54 @@ public final class EventCopierTest {
     List<Event> copied = target.allEvents();
     assertEquals(LocalDate.of(2025, 12, 1), copied.get(0).start().toLocalDate());
     assertEquals(LocalDate.of(2025, 12, 3), copied.get(1).start().toLocalDate());
+  }
+
+  @Test
+  public void copyEventsBetween_preservesSeriesIdentity() throws Exception {
+    final TimeZoneInMemoryCalendarInterface source = calendar("America/New_York", "Source");
+    final TimeZoneInMemoryCalendarInterface target = calendar("America/New_York", "Target");
+
+    SeriesDraft seriesDraft = new SeriesDraft();
+    seriesDraft.subject = "Sync";
+    seriesDraft.startDate = LocalDate.of(2025, 1, 6);
+    seriesDraft.startTime = Optional.of(LocalTime.of(9, 0));
+    seriesDraft.endTime = Optional.of(LocalTime.of(10, 0));
+    seriesDraft.rule = new RecurrenceRule(
+        EnumSet.of(Weekday.M, Weekday.W),
+        Optional.of(5),
+        Optional.empty());
+    source.createSeries(seriesDraft);
+
+    LocalDate copyStart = LocalDate.of(2025, 1, 8);
+    LocalDate copyEnd = LocalDate.of(2025, 1, 15);
+    LocalDate targetStart = LocalDate.of(2025, 2, 1);
+
+    EventCopier.copyEventsBetween(source, copyStart, copyEnd, target, targetStart);
+
+    List<Event> copied = target.allEvents();
+    assertEquals(3, copied.size());
+
+    Optional<SeriesId> maybeSid = target.seriesOfEvent(copied.get(0).id());
+    assertTrue(maybeSid.isPresent());
+    SeriesId sid = maybeSid.get();
+
+    for (Event event : copied) {
+      assertEquals(sid, target.seriesOfEvent(event.id()).orElse(null));
+    }
+
+    EventSelector selector = new EventSelector();
+    selector.subject = seriesDraft.subject;
+    selector.start = copied.get(0).start();
+    selector.end = Optional.of(copied.get(0).end());
+
+    EventPatch patch = new EventPatch();
+    patch.location = Optional.of("Copied Room");
+
+    target.updateBySelector(selector, patch, EditScope.ENTIRE_SERIES);
+
+    for (Event event : target.allEvents()) {
+      assertEquals("Copied Room", event.location().orElse(""));
+    }
   }
 
   @Test
@@ -228,6 +280,11 @@ public final class EventCopierTest {
     @Override
     public List<Event> allEvents() {
       return events;
+    }
+
+    @Override
+    public Optional<SeriesId> seriesOfEvent(EventId eventId) {
+      return Optional.empty();
     }
 
     @Override
