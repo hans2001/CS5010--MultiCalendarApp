@@ -124,6 +124,7 @@ public class CalendarControllerMoreTest {
   @Test
   public void testExportCatchPathWhenViewFails() throws Exception {
     Path tempFile = Files.createTempFile("failing", ".csv");
+    Path exportedFile = Path.of(tempFile.getFileName().toString());
     Files.deleteIfExists(tempFile); // Delete so export can create it
     try {
       String fileName = tempFile.getFileName().toString();
@@ -139,6 +140,7 @@ public class CalendarControllerMoreTest {
       assertTrue("Output should contain error message. Actual: " + s,
           s.contains("Error: Failed to export calendar: boom"));
     } finally {
+      Files.deleteIfExists(exportedFile);
       Files.deleteIfExists(tempFile);
     }
   }

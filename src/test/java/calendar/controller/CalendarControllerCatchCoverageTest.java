@@ -151,6 +151,7 @@ public class CalendarControllerCatchCoverageTest {
   @Test
   public void export_viewFailsAfterSuccess_appendsFallback() throws Exception {
     Path tempFile = Files.createTempFile("export_success", ".csv");
+    Path exportedFile = Path.of(tempFile.getFileName().toString());
     Files.deleteIfExists(tempFile); // Delete so export can create it
     try {
       String fileName = tempFile.getFileName().toString();
@@ -169,6 +170,7 @@ public class CalendarControllerCatchCoverageTest {
       assertTrue("Output should contain error message. Actual: " + output,
           output.contains("Error: Failed to export calendar: view boom"));
     } finally {
+      Files.deleteIfExists(exportedFile);
       Files.deleteIfExists(tempFile);
     }
   }
