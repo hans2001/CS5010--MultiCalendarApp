@@ -138,6 +138,7 @@ public class CalendarGuiController implements CalendarGuiFeatures {
     try {
       EventCreationRequest parsed = formService.parseCreateEventCommand(request.get());
       formService.applyCreateEvent(parsed, getActiveCalendar());
+      view.showMessage("Event created successfully.");
       refreshEvents();
     } catch (ValidationException e) {
       view.showError("Fields are invalid " + e.getMessage());
