@@ -14,8 +14,7 @@ public class NextMonthCommand implements CalendarGuiCommand {
   public void run(CalendarManager manager, GuiCalendarInterface current,
                   CalendarGuiController controller,
                   CalendarGuiViewInterface view) {
-    YearMonth prev = current.getNextMonth();
-    view.drawMonth(prev);
+    YearMonth next = current.getNextMonth();
+    controller.onMonthChanged(next);
   }
 }
-

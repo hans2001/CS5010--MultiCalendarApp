@@ -39,11 +39,13 @@ public class EditCalendarCommand implements CalendarGuiCommand {
       view.setActiveCalendarTimezone(newTimeZone);
     }
 
-    //Update the name (if changed)
     if (!found.getName().equals(newName)) {
       manager.editCalendarName(ogName, newName);
+      controller.renameKnownCalendar(ogName, newName);
       view.setActiveCalendarName(newName);
       view.editCalendarInSelector(ogName, newName);
     }
+
+    controller.refreshActiveCalendar();
   }
 }

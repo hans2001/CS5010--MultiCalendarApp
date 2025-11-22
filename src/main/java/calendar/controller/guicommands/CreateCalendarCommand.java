@@ -26,10 +26,8 @@ public class CreateCalendarCommand implements CalendarGuiCommand {
 
     try {
       manager.createCalendar(name, tz);
-      view.showMessage("Created calendar with name \""
-          +
-          name + "\" with timezone " + tz);
-      view.addCalendarToSelector(name);
+      view.showMessage("Created calendar with name \"" + name + "\" with timezone " + tz);
+      controller.registerCalendarName(name);
     } catch (Exception e) {
       view.showError("Could not create calendar: " + e.getMessage());
     }
