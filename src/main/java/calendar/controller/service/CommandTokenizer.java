@@ -12,8 +12,7 @@ import java.util.regex.Pattern;
 public final class CommandTokenizer {
   private static final Pattern TOKEN_PATTERN = Pattern.compile("\"[^\"]+\"|\\S+");
 
-  private CommandTokenizer() {
-  }
+  private CommandTokenizer() {}
 
   /**
    * Splits the provided input into tokens. Quoted values (e.g., "Team Meeting") are kept intact
