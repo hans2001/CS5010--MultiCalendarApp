@@ -4,24 +4,22 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import calendar.controller.EditProperty;
-import calendar.controller.service.EventCreationRequest;
-import calendar.controller.service.EventEditRequest;
 import calendar.controller.guicommands.CreateCalendarCommand;
 import calendar.controller.guicommands.EditCalendarCommand;
 import calendar.controller.guicommands.NextMonthCommand;
 import calendar.controller.guicommands.PrevMonthCommand;
 import calendar.controller.guicommands.SelectCalendarCommand;
+import calendar.controller.service.EventCreationRequest;
+import calendar.controller.service.EventEditRequest;
 import calendar.model.CalendarManager;
 import calendar.model.GuiCalendar;
 import calendar.model.TimeZoneInMemoryCalendarInterface;
+import calendar.model.api.EditScope;
 import calendar.model.config.CalendarSettings;
 import calendar.model.domain.Event;
-import calendar.model.domain.Status;
 import calendar.view.CalendarGuiFeatures;
 import calendar.view.CalendarGuiViewInterface;
 import calendar.view.model.GuiEventSummary;
-import calendar.model.api.EditScope;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -48,6 +46,7 @@ public final class CalendarGuiControllerTest {
   private RecordingView view;
   private CalendarGuiController controller;
 
+  /** Prepares a fresh controller and recording view for each test. */
   @Before
   public void setUp() {
     manager = new CalendarManager();
@@ -102,7 +101,7 @@ public final class CalendarGuiControllerTest {
 
   @Test
   public void monthNavigationInvokesCommands() {
-    int initialDraws = view.drawnMonths.size();
+    final int initialDraws = view.drawnMonths.size();
     new NextMonthCommand().run(manager, guiCalendar, controller, view);
     YearMonth afterNext = guiCalendar.getMonth();
     assertEquals(afterNext.atDay(1), view.lastDisplayedDate);
@@ -181,7 +180,7 @@ public final class CalendarGuiControllerTest {
 
   @Test
   public void editCalendarCommandUpdatesNameAndTimezone() {
-    int drawsBefore = view.drawnMonths.size();
+    final int drawsBefore = view.drawnMonths.size();
     view.nextEditCalendarResponse =
         new String[] {"Default Calendar", "Renamed", "America/Chicago"};
     new EditCalendarCommand().run(manager, guiCalendar, controller, view);
@@ -190,11 +189,11 @@ public final class CalendarGuiControllerTest {
     assertEquals("Renamed", view.activeCalendarName);
     assertEquals("America/Chicago", view.activeCalendarTimezone);
     assertTrue(view.selectorEdits.contains("Default Calendar->Renamed"));
-    long before = view.addedCalendars.stream()
+    final long before = view.addedCalendars.stream()
         .filter(name -> name.equals("Renamed"))
         .count();
     controller.registerCalendarName("Renamed");
-    long after = view.addedCalendars.stream()
+    final long after = view.addedCalendars.stream()
         .filter(name -> name.equals("Renamed"))
         .count();
     assertEquals("Rename should update known calendar cache", before, after);
@@ -217,9 +216,9 @@ public final class CalendarGuiControllerTest {
   public void setInUseCalendarUpdatesViewState() {
     manager.createCalendar("Secondary", "America/Chicago");
     GuiCalendar newGui = new GuiCalendar(manager.getCalendar("Secondary"));
-    int beforeDisplay = view.displayEventsCalls;
-    int beforeSelectCalls = view.setSelectedDateCalls;
-    int beforeSelectCalendar = view.selectCalendarCalls;
+    final int beforeDisplay = view.displayEventsCalls;
+    final int beforeSelectCalls = view.setSelectedDateCalls;
+    final int beforeSelectCalendar = view.selectCalendarCalls;
 
     controller.setInUseCalendar(newGui);
 
@@ -237,9 +236,9 @@ public final class CalendarGuiControllerTest {
 
   @Test
   public void goToNextMonthUsesBoundCommand() {
-    int before = view.drawnMonths.size();
-    int beforeSelect = view.setSelectedDateCalls;
-    int beforeDisplay = view.displayEventsCalls;
+    final int before = view.drawnMonths.size();
+    final int beforeSelect = view.setSelectedDateCalls;
+    final int beforeDisplay = view.displayEventsCalls;
     controller.goToNextMonth();
     assertTrue(view.errors.isEmpty());
     assertTrue(view.drawnMonths.size() > before);
@@ -255,8 +254,9 @@ public final class CalendarGuiControllerTest {
     f.setAccessible(true);
     @SuppressWarnings("unchecked")
     java.util.Map<String, calendar.controller.guicommands.CalendarGuiCommand> map =
-        (java.util.Map<String, calendar.controller.guicommands.CalendarGuiCommand>) f.get(controller);
-    java.util.Map<String, calendar.controller.guicommands.CalendarGuiCommand> backup =
+        (java.util.Map<String, calendar.controller.guicommands.CalendarGuiCommand>) f.get(
+            controller);
+    final java.util.Map<String, calendar.controller.guicommands.CalendarGuiCommand> backup =
         new java.util.HashMap<>(map);
     map.clear();
     controller.goToPreviousMonth();
