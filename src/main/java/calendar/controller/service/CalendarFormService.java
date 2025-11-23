@@ -42,96 +42,17 @@ public class CalendarFormService {
     String trimmed = input.trim();
 
     if (trimmed.matches(CREATE_SINGLE)) {
-      String[] parts = CommandTokenizer.tokenize(trimmed);
-      String subject = parts[2];
-      LocalDateTime from = LocalDateTime.parse(parts[4]);
-      LocalDateTime to = LocalDateTime.parse(parts[6]);
-
-      return new EventCreationRequest.Builder()
-          .pattern(EventCreationRequest.Pattern.SINGLE_TIMED)
-          .subject(subject)
-          .startDateTime(from)
-          .endDateTime(to)
-          .build();
+      return parseSingleTimed(trimmed);
     } else if (trimmed.matches(CREATE_REPEAT_N)) {
-      String[] parts = CommandTokenizer.tokenize(trimmed);
-      String subject = parts[2];
-      LocalDateTime start = LocalDateTime.parse(parts[4]);
-      LocalDateTime end = LocalDateTime.parse(parts[6]);
-      EnumSet<Weekday> weekdays = weekdaysSetFromString(parts[8]);
-      int n = Integer.parseInt(parts[10]);
-
-      return new EventCreationRequest.Builder()
-          .pattern(EventCreationRequest.Pattern.RECURRING_TIMED_COUNT)
-          .subject(subject)
-          .startDateTime(start)
-          .endDateTime(end)
-          .weekdays(weekdays)
-          .occurrences(n)
-          .build();
+      return parseRecurringTimedCount(trimmed);
     } else if (trimmed.matches(CREATE_REPEAT_UNTIL)) {
-      String[] parts = CommandTokenizer.tokenize(trimmed);
-      String subject = parts[2];
-      LocalDateTime start = LocalDateTime.parse(parts[4]);
-      LocalDateTime end = LocalDateTime.parse(parts[6]);
-      EnumSet<Weekday> weekdays = weekdaysSetFromString(parts[8]);
-      LocalDate until = LocalDate.parse(parts[10]);
-      LocalDate startDate = start.toLocalDate();
-      if (!until.isAfter(startDate) && !until.isEqual(startDate)) {
-        throw new IllegalArgumentException(
-            "Fields are invalid Until date must be after or equal to start date");
-      }
-
-      return new EventCreationRequest.Builder()
-          .pattern(EventCreationRequest.Pattern.RECURRING_TIMED_UNTIL)
-          .subject(subject)
-          .startDateTime(start)
-          .endDateTime(end)
-          .weekdays(weekdays)
-          .untilDate(until)
-          .build();
+      return parseRecurringTimedUntil(trimmed);
     } else if (trimmed.matches(CREATE_ALLDAY)) {
-      String[] parts = CommandTokenizer.tokenize(trimmed);
-      String subject = parts[2];
-      LocalDate onDate = LocalDate.parse(parts[4]);
-
-      return new EventCreationRequest.Builder()
-          .pattern(EventCreationRequest.Pattern.SINGLE_ALL_DAY)
-          .subject(subject)
-          .allDayDate(onDate)
-          .build();
+      return parseSingleAllDay(trimmed);
     } else if (trimmed.matches(CREATE_ALLDAY_REPEAT_N)) {
-      String[] parts = CommandTokenizer.tokenize(trimmed);
-      String subject = parts[2];
-      LocalDate onDate = LocalDate.parse(parts[4]);
-      EnumSet<Weekday> weekdays = weekdaysSetFromString(parts[6]);
-      int n = Integer.parseInt(parts[8]);
-
-      return new EventCreationRequest.Builder()
-          .pattern(EventCreationRequest.Pattern.RECURRING_ALL_DAY_COUNT)
-          .subject(subject)
-          .allDayDate(onDate)
-          .weekdays(weekdays)
-          .occurrences(n)
-          .build();
+      return parseRecurringAllDayCount(trimmed);
     } else if (trimmed.matches(CREATE_ALLDAY_REPEAT_UNTIL)) {
-      String[] parts = CommandTokenizer.tokenize(trimmed);
-      String subject = parts[2];
-      LocalDate onDate = LocalDate.parse(parts[4]);
-      EnumSet<Weekday> weekdays = weekdaysSetFromString(parts[6]);
-      LocalDate until = LocalDate.parse(parts[8]);
-      if (!until.isAfter(onDate) && !until.isEqual(onDate)) {
-        throw new IllegalArgumentException(
-            "Fields are invalid Until date must be after or equal to start date");
-      }
-
-      return new EventCreationRequest.Builder()
-          .pattern(EventCreationRequest.Pattern.RECURRING_ALL_DAY_UNTIL)
-          .subject(subject)
-          .allDayDate(onDate)
-          .weekdays(weekdays)
-          .untilDate(until)
-          .build();
+      return parseRecurringAllDayUntil(trimmed);
     }
 
     throw new IllegalArgumentException("Error: Invalid create event command format.");
@@ -209,55 +130,131 @@ public class CalendarFormService {
     String trimmed = input.trim();
 
     if (trimmed.matches(EDIT_SINGLE)) {
-      String[] parts = CommandTokenizer.tokenize(trimmed);
-      EditProperty property = EditProperty.from(parts[2])
-          .orElseThrow(() -> new IllegalArgumentException("Invalid property: " + parts[2]));
-      String subject = parts[3];
-      LocalDateTime from = LocalDateTime.parse(parts[5]);
-      LocalDateTime to = LocalDateTime.parse(parts[7]);
-      String newValue = parts[9];
-
-      return new EventEditRequest.Builder()
-          .property(property)
-          .subject(subject)
-          .start(from)
-          .end(to)
-          .newValue(newValue)
-          .scope(EditScope.SINGLE)
-          .build();
+      return parseEditSingle(trimmed);
     } else if (trimmed.matches(EDIT_EVENTS)) {
-      String[] parts = CommandTokenizer.tokenize(trimmed);
-      EditProperty property = EditProperty.from(parts[2])
-          .orElseThrow(() -> new IllegalArgumentException("Invalid property: " + parts[2]));
-      String subject = parts[3];
-      LocalDateTime from = LocalDateTime.parse(parts[5]);
-      String newValue = parts[7];
-
-      return new EventEditRequest.Builder()
-          .property(property)
-          .subject(subject)
-          .start(from)
-          .newValue(newValue)
-          .scope(EditScope.FOLLOWING)
-          .build();
+      return parseEditFollowing(trimmed);
     } else if (trimmed.matches(EDIT_SERIES)) {
-      String[] parts = CommandTokenizer.tokenize(trimmed);
-      EditProperty property = EditProperty.from(parts[2])
-          .orElseThrow(() -> new IllegalArgumentException("Invalid property: " + parts[2]));
-      String subject = parts[3];
-      LocalDateTime from = LocalDateTime.parse(parts[5]);
-      String newValue = parts[7];
-
-      return new EventEditRequest.Builder()
-          .property(property)
-          .subject(subject)
-          .start(from)
-          .newValue(newValue)
-          .scope(EditScope.ENTIRE_SERIES)
-          .build();
+      return parseEditSeries(trimmed);
     }
 
     throw new IllegalArgumentException("Error: Invalid edit command format.");
+  }
+
+  private EventCreationRequest parseSingleTimed(String trimmed) {
+    String[] parts = CommandTokenizer.tokenize(trimmed);
+    return new EventCreationRequest.Builder()
+        .pattern(EventCreationRequest.Pattern.SINGLE_TIMED)
+        .subject(parts[2])
+        .startDateTime(LocalDateTime.parse(parts[4]))
+        .endDateTime(LocalDateTime.parse(parts[6]))
+        .build();
+  }
+
+  private EventCreationRequest parseRecurringTimedCount(String trimmed) {
+    String[] parts = CommandTokenizer.tokenize(trimmed);
+    return new EventCreationRequest.Builder()
+        .pattern(EventCreationRequest.Pattern.RECURRING_TIMED_COUNT)
+        .subject(parts[2])
+        .startDateTime(LocalDateTime.parse(parts[4]))
+        .endDateTime(LocalDateTime.parse(parts[6]))
+        .weekdays(weekdaysSetFromString(parts[8]))
+        .occurrences(Integer.parseInt(parts[10]))
+        .build();
+  }
+
+  private EventCreationRequest parseRecurringTimedUntil(String trimmed) {
+    String[] parts = CommandTokenizer.tokenize(trimmed);
+    LocalDateTime start = LocalDateTime.parse(parts[4]);
+    LocalDate until = LocalDate.parse(parts[10]);
+    LocalDate startDate = start.toLocalDate();
+    if (!until.isAfter(startDate) && !until.isEqual(startDate)) {
+      throw new IllegalArgumentException(
+          "Fields are invalid Until date must be after or equal to start date");
+    }
+
+    return new EventCreationRequest.Builder()
+        .pattern(EventCreationRequest.Pattern.RECURRING_TIMED_UNTIL)
+        .subject(parts[2])
+        .startDateTime(start)
+        .endDateTime(LocalDateTime.parse(parts[6]))
+        .weekdays(weekdaysSetFromString(parts[8]))
+        .untilDate(until)
+        .build();
+  }
+
+  private EventCreationRequest parseSingleAllDay(String trimmed) {
+    String[] parts = CommandTokenizer.tokenize(trimmed);
+    return new EventCreationRequest.Builder()
+        .pattern(EventCreationRequest.Pattern.SINGLE_ALL_DAY)
+        .subject(parts[2])
+        .allDayDate(LocalDate.parse(parts[4]))
+        .build();
+  }
+
+  private EventCreationRequest parseRecurringAllDayCount(String trimmed) {
+    String[] parts = CommandTokenizer.tokenize(trimmed);
+    return new EventCreationRequest.Builder()
+        .pattern(EventCreationRequest.Pattern.RECURRING_ALL_DAY_COUNT)
+        .subject(parts[2])
+        .allDayDate(LocalDate.parse(parts[4]))
+        .weekdays(weekdaysSetFromString(parts[6]))
+        .occurrences(Integer.parseInt(parts[8]))
+        .build();
+  }
+
+  private EventCreationRequest parseRecurringAllDayUntil(String trimmed) {
+    String[] parts = CommandTokenizer.tokenize(trimmed);
+    LocalDate onDate = LocalDate.parse(parts[4]);
+    LocalDate until = LocalDate.parse(parts[8]);
+    if (!until.isAfter(onDate) && !until.isEqual(onDate)) {
+      throw new IllegalArgumentException(
+          "Fields are invalid Until date must be after or equal to start date");
+    }
+
+    return new EventCreationRequest.Builder()
+        .pattern(EventCreationRequest.Pattern.RECURRING_ALL_DAY_UNTIL)
+        .subject(parts[2])
+        .allDayDate(onDate)
+        .weekdays(weekdaysSetFromString(parts[6]))
+        .untilDate(until)
+        .build();
+  }
+
+  private EventEditRequest parseEditSingle(String trimmed) {
+    String[] parts = CommandTokenizer.tokenize(trimmed);
+    return new EventEditRequest.Builder()
+        .property(EditProperty.from(parts[2])
+            .orElseThrow(() -> new IllegalArgumentException("Invalid property: " + parts[2])))
+        .subject(parts[3])
+        .start(LocalDateTime.parse(parts[5]))
+        .end(LocalDateTime.parse(parts[7]))
+        .newValue(parts[9])
+        .scope(EditScope.SINGLE)
+        .build();
+  }
+
+  private EventEditRequest parseEditFollowing(String trimmed) {
+    String[] parts = CommandTokenizer.tokenize(trimmed);
+    return new EventEditRequest.Builder()
+        .property(EditProperty.from(parts[2])
+            .orElseThrow(() -> new IllegalArgumentException("Invalid property: " + parts[2])))
+        .subject(parts[3])
+        .start(LocalDateTime.parse(parts[5]))
+        .newValue(parts[7])
+        .scope(EditScope.FOLLOWING)
+        .build();
+  }
+
+  private EventEditRequest parseEditSeries(String trimmed) {
+    String[] parts = CommandTokenizer.tokenize(trimmed);
+    return new EventEditRequest.Builder()
+        .property(EditProperty.from(parts[2])
+            .orElseThrow(() -> new IllegalArgumentException("Invalid property: " + parts[2])))
+        .subject(parts[3])
+        .start(LocalDateTime.parse(parts[5]))
+        .newValue(parts[7])
+        .scope(EditScope.ENTIRE_SERIES)
+        .build();
   }
 
   /**
