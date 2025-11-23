@@ -1,6 +1,6 @@
 package calendar.controller.commands;
 
-import static calendar.controller.commands.Command.splitCommands;
+import static calendar.controller.service.CommandTokenizer.tokenize;
 
 import calendar.controller.CommandPatterns;
 import calendar.controller.CommandPatternsExtended;
@@ -34,7 +34,7 @@ public class HandleEvents {
       String input, CalendarManager manager, CalendarView view
   ) throws IOException {
     if (input.matches(CommandPatternsExtended.CREATE_CALENDAR)) {
-      String[] parts = splitCommands(input);
+      String[] parts = tokenize(input);
       String name = parts[3];
       String timeZone = parts[5];
 
@@ -63,7 +63,7 @@ public class HandleEvents {
       String input, CalendarManager manager, CalendarView view
   ) throws IOException, NotFoundException {
     if (input.matches(CommandPatternsExtended.EDIT_CALENDAR_NAME)) {
-      String[] parts = splitCommands(input);
+      String[] parts = tokenize(input);
       String calendarName = parts[3];
       String newProperty = parts[6];
 
@@ -74,7 +74,7 @@ public class HandleEvents {
         view.printMessage(e.getMessage());
       }
     } else if (input.matches(CommandPatternsExtended.EDIT_CALENDAR_TIMEZONE)) {
-      String[] parts = splitCommands(input);
+      String[] parts = tokenize(input);
       String calendarName = parts[3];
       String newProperty = parts[6];
 
@@ -106,7 +106,7 @@ public class HandleEvents {
       String input, CalendarManager manager, CalendarView view
   ) throws IOException, NotFoundException {
     if (input.matches(CommandPatternsExtended.USE_CALENDAR)) {
-      String[] parts = splitCommands(input);
+      String[] parts = tokenize(input);
       String name = parts[3];
 
       try {
@@ -145,7 +145,7 @@ public class HandleEvents {
     }
 
     if (input.matches(CommandPatternsExtended.COPY_EVENT)) {
-      String[] parts = splitCommands(input);
+      String[] parts = tokenize(input);
       String eventName = parts[2];
       String eventFromTime = parts[4];
       String destCalName = parts[6];
@@ -168,7 +168,7 @@ public class HandleEvents {
         view.printMessage(e.getMessage());
       }
     } else if (input.matches(CommandPatternsExtended.COPY_EVENTS_ON)) {
-      String[] parts = splitCommands(input);
+      String[] parts = tokenize(input);
       String onDate = parts[3];
       String destCalName = parts[5];
       String toDate = parts[7];
@@ -189,7 +189,7 @@ public class HandleEvents {
         view.printMessage(e.getMessage());
       }
     } else if (input.matches(CommandPatternsExtended.COPY_EVENTS_BETWEEN)) {
-      String[] parts = splitCommands(input);
+      String[] parts = tokenize(input);
       String betweenDate1 = parts[3];
       String betweenDate2 = parts[5];
       String destCalName = parts[7];
@@ -236,7 +236,7 @@ public class HandleEvents {
     input = input.trim();
 
     if (input.matches(CommandPatterns.PRINT_ON)) {
-      String[] parts = splitCommands(input);
+      String[] parts = tokenize(input);
       LocalDate onDate = LocalDate.parse(parts[3]);
 
       Map<String, TimeZoneInMemoryCalendarInterface> allCalendars = manager.getAllCalendars();
@@ -250,7 +250,7 @@ public class HandleEvents {
         view.printEventsOn(onDate, events);
       }
     } else if (input.matches(CommandPatterns.PRINT_FROM_TO)) {
-      String[] parts = splitCommands(input);
+      String[] parts = tokenize(input);
       LocalDateTime onDate = LocalDateTime.parse(parts[3]);
       LocalDateTime toDate = LocalDateTime.parse(parts[5]);
 

@@ -2,6 +2,7 @@ package calendar.controller;
 
 import static calendar.controller.CommandPatterns.EXPORT;
 import static calendar.controller.CommandPatterns.SHOW_STATUS_ON;
+import static calendar.controller.service.CommandTokenizer.tokenize;
 
 import calendar.controller.commands.CommandHandler;
 import calendar.controller.commands.HandleEvents;
@@ -26,15 +27,12 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Scanner;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Calendar controller for processing user input and interacting with model and view.
@@ -70,27 +68,6 @@ public class CalendarControllerImpl implements CalendarController {
     this.icalExporter = new IcalExporter(sharedSettings);
     this.calendarManager = new CalendarManager();
     this.formService = new CalendarFormService();
-  }
-
-  /**
-   * Splits the user command by "" or spaces to try and get keywords and params.
-   *
-   * @param input user input.
-   * @return array of parts for each word in the input.
-   */
-  private static String[] splitCommands(String input) {
-    List<String> parts = new ArrayList<>();
-    Matcher matcher = Pattern.compile("\"[^\"]+\"|\\S+").matcher(input);
-
-    while (matcher.find()) {
-      String part = matcher.group();
-      if (part.startsWith("\"") && part.endsWith("\"")) {
-        part = part.substring(1, part.length() - 1);
-      }
-      parts.add(part);
-    }
-
-    return parts.toArray(new String[0]);
   }
 
   /**
@@ -314,7 +291,7 @@ public class CalendarControllerImpl implements CalendarController {
   private void handleShowStatus(String input, CalendarApi calendar, CalendarView view)
       throws IOException {
     if (input.trim().matches(SHOW_STATUS_ON)) {
-      String[] parts = splitCommands(input);
+      String[] parts = tokenize(input);
       LocalDateTime dateString = LocalDateTime.parse(parts[3]);
 
       BusyStatus status = calendar.statusAt(dateString);
@@ -339,7 +316,7 @@ public class CalendarControllerImpl implements CalendarController {
   private void handleExport(String input, CalendarApi calendar, CalendarView view)
       throws IOException {
     if (input.trim().matches(EXPORT)) {
-      String[] parts = splitCommands(input);
+      String[] parts = tokenize(input);
       String fileName = parts[2];
 
       try {
