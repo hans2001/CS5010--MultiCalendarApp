@@ -38,4 +38,22 @@ public class CalendarRunnerTesterAdd extends CalendarRunnerTester {
     assertTrue(result.contains("Enter a command: Calendar with name 'school' already exists"));
     assertTrue(result.contains("Enter a command: Unsupported timezone: Fake/Kolkata"));
   }
+
+  /**
+   * Tests bad file for export is cuaght.
+   */
+  @Test
+  public void badExportTest() throws Exception {
+    String input = "create calendar --name school --timezone America/New_York\n"
+        + "use calendar --name school\n"
+        + "export cal test.test\n"
+        + "exit\n";
+    String result = runWithInput(input);
+
+    assertTrue(result.contains("Welcome to Calendar. Type 'exit' to quit."));
+    assertTrue(result.contains("Enter a command: Successfully created calendar: school"));
+    assertTrue(result.contains("Enter a command: Error: Failed to export "
+        +
+        "calendar: Unsupported export format: test.test"));
+  }
 }

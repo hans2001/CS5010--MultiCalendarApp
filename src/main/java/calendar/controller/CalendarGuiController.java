@@ -8,11 +8,13 @@ import calendar.controller.guicommands.PrevMonthCommand;
 import calendar.controller.guicommands.SelectCalendarCommand;
 import calendar.model.CalendarManager;
 import calendar.model.GuiCalendar;
+import calendar.model.GuiCalendarInterface;
 import calendar.model.TimeZoneInMemoryCalendarInterface;
 import calendar.model.config.CalendarSettings;
 import calendar.view.CalendarGuiViewInterface;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -23,7 +25,7 @@ import java.util.Set;
 public class CalendarGuiController implements ActionListener {
   private final CalendarSettings settings;
   private final CalendarGuiViewInterface view;
-  private GuiCalendar inUseGuiCalendar;
+  private GuiCalendarInterface inUseGuiCalendar;
   private final CalendarManager calendarManager;
   Map<String, CalendarGuiCommand> commandMap = new HashMap<>();
 
@@ -36,7 +38,7 @@ public class CalendarGuiController implements ActionListener {
    * @param calendarManager manager.
    */
   public CalendarGuiController(CalendarSettings settings, CalendarGuiViewInterface view,
-                               GuiCalendar inUseCalendar,
+                               GuiCalendarInterface inUseCalendar,
                                CalendarManager calendarManager) {
     this.calendarManager = calendarManager;
     this.inUseGuiCalendar = inUseCalendar;
@@ -66,15 +68,12 @@ public class CalendarGuiController implements ActionListener {
 
   @Override
   public void actionPerformed(ActionEvent e) {
-    String cmdName = e.getActionCommand();
-    CalendarGuiCommand cmd = commandMap.get(cmdName);
+    String cmd = e.getActionCommand();
+    CalendarGuiCommand command = commandMap.get(cmd);
 
-    if (cmd == null) {
-      view.showError("Unknown command: " + cmdName);
-      return;
+    if (command != null) {
+      command.run(calendarManager, inUseGuiCalendar, this, view);
     }
-
-    cmd.run(calendarManager, inUseGuiCalendar, this, view);
   }
 
   /**
@@ -82,7 +81,7 @@ public class CalendarGuiController implements ActionListener {
    *
    * @param newCalendar new calendar.
    */
-  public void setInUseCalendar(GuiCalendar newCalendar) {
-    this.inUseGuiCalendar = newCalendar;
+  public void setInUseCalendar(TimeZoneInMemoryCalendarInterface newCalendar) {
+    this.inUseGuiCalendar.switchCalendar(newCalendar);
   }
 }

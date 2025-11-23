@@ -31,19 +31,30 @@ public class EditCalendarCommand implements CalendarGuiCommand {
     String newName = ret[1];
     String newTimeZone = ret[2];
 
-    TimeZoneInMemoryCalendarInterface found = manager.getCalendar(ogName);
+    try {
+      TimeZoneInMemoryCalendarInterface found = manager.getCalendar(ogName);
+      //Update the Timezone (if changed)
+      if (!found.getZoneId().toString().equals(newTimeZone)) {
+        try {
+          manager.editCalendarTimezone(ogName, ZoneId.of(newTimeZone));
+          view.setActiveCalendarTimezone(newTimeZone);
+        } catch (Exception e) {
+          view.showError("Error while editing: " + e.getMessage());
+        }
+      }
 
-    //Update the Timezone (if changed)
-    if (!found.getZoneId().toString().equals(newTimeZone)) {
-      manager.editCalendarTimezone(ogName, ZoneId.of(newTimeZone));
-      view.setActiveCalendarTimezone(newTimeZone);
-    }
-
-    //Update the name (if changed)
-    if (!found.getName().equals(newName)) {
-      manager.editCalendarName(ogName, newName);
-      view.setActiveCalendarName(newName);
-      view.editCalendarInSelector(ogName, newName);
+      //Update the name (if changed)
+      if (!found.getName().equals(newName)) {
+        try {
+          manager.editCalendarName(ogName, newName);
+          view.setActiveCalendarName(newName);
+          view.editCalendarInSelector(ogName, newName);
+        } catch (Exception e) {
+          view.showError("Error while editing: " + e.getMessage());
+        }
+      }
+    } catch (Exception e) {
+      view.showError("Error while editing: " + e.getMessage());
     }
   }
 }

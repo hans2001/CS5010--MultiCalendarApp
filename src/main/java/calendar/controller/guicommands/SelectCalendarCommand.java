@@ -19,13 +19,17 @@ public class SelectCalendarCommand implements CalendarGuiCommand {
 
     String name = view.getSelectedCalendarName();
 
-    TimeZoneInMemoryCalendarInterface found = manager.getCalendar(name);
+    try {
+      TimeZoneInMemoryCalendarInterface found = manager.getCalendar(name);
 
-    view.setActiveCalendarName(name);
-    view.setActiveCalendarTimezone(found.getZoneId().toString());
-    view.drawMonth(YearMonth.now());
+      view.setActiveCalendarName(name);
+      view.setActiveCalendarTimezone(found.getZoneId().toString());
+      view.drawMonth(YearMonth.now());
 
-    controller.setInUseCalendar(new GuiCalendar(found));
+      controller.setInUseCalendar(found);
+    } catch (Exception e) {
+      view.showError("Error selecting: " + e.getMessage());
+    }
   }
 }
 
