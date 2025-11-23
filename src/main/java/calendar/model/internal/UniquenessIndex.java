@@ -1,7 +1,9 @@
 package calendar.model.internal;
 
+import calendar.model.domain.Event;
 import calendar.model.exception.ConflictException;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Objects;
@@ -43,5 +45,12 @@ final class UniquenessIndex {
     }
     triples.remove(oldKey);
     triples.add(newKey);
+  }
+
+  void reset(Collection<Event> events) {
+    triples.clear();
+    for (Event event : events) {
+      addOrThrow(event.subject(), event.start(), event.end());
+    }
   }
 }

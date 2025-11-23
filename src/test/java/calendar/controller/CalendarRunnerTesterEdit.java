@@ -50,7 +50,7 @@ public class CalendarRunnerTesterEdit extends CalendarRunnerTester {
         +
         "Events on 2025-05-05:\n"
         +
-        "- Team Meeting from 10:00 to 11:00"));
+        "- Team Meeting from 16:00 to 17:00"));
   }
 
   /**
