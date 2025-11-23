@@ -46,6 +46,8 @@ public class CalendarControllerImpl implements CalendarController {
   private final CalendarFormService formService;
   private final Map<String, CommandHandler> commandHandlers = new HashMap<>();
   private TimeZoneInMemoryCalendarInterface inUseCalendar = null;
+  private static final String ERROR_NO_CALENDAR =
+      "Error: No calendar selected.";
 
   /**
    * Creates a new calendar controller.
@@ -79,53 +81,23 @@ public class CalendarControllerImpl implements CalendarController {
    * controller's active calendar when a calendar is successfully selected.
    */
   public void registerCommands() {
-    commandHandlers.put("create event", (line, view) -> {
-      if (inUseCalendar == null) {
-        view.printMessage("Error: No calendar selected.");
-      } else {
-        handleCreateEvent(line, inUseCalendar, view);
-      }
-    });
+    commandHandlers.put("create event", (line, view) -> guardWithActiveCalendar(view,
+        () -> handleCreateEvent(line, inUseCalendar, view)));
 
-    commandHandlers.put("edit", (line, view) -> {
-      if (inUseCalendar == null) {
-        view.printMessage("Error: No calendar selected.");
-      } else {
-        handleEditEvent(line, inUseCalendar, view);
-      }
-    });
+    commandHandlers.put("edit", (line, view) -> guardWithActiveCalendar(view,
+        () -> handleEditEvent(line, inUseCalendar, view)));
 
-    commandHandlers.put("edit event", (line, view) -> {
-      if (inUseCalendar == null) {
-        view.printMessage("Error: No calendar selected.");
-      } else {
-        handleEditEvent(line, inUseCalendar, view);
-      }
-    });
+    commandHandlers.put("edit event", (line, view) -> guardWithActiveCalendar(view,
+        () -> handleEditEvent(line, inUseCalendar, view)));
 
-    commandHandlers.put("print", (line, view) -> {
-      if (inUseCalendar == null) {
-        view.printMessage("Error: No calendar selected.");
-      } else {
-        HandleEvents.handlePrintEvent(line, view, calendarManager);
-      }
-    });
+    commandHandlers.put("print", (line, view) -> guardWithActiveCalendar(view,
+        () -> HandleEvents.handlePrintEvent(line, view, calendarManager)));
 
-    commandHandlers.put("show status on", (line, view) -> {
-      if (inUseCalendar == null) {
-        view.printMessage("Error: No calendar selected.");
-      } else {
-        handleShowStatus(line, inUseCalendar, view);
-      }
-    });
+    commandHandlers.put("show status on", (line, view) -> guardWithActiveCalendar(view,
+        () -> handleShowStatus(line, inUseCalendar, view)));
 
-    commandHandlers.put("export cal", (line, view) -> {
-      if (inUseCalendar == null) {
-        view.printMessage("Error: No calendar selected.");
-      } else {
-        handleExport(line, inUseCalendar, view);
-      }
-    });
+    commandHandlers.put("export cal", (line, view) -> guardWithActiveCalendar(view,
+        () -> handleExport(line, inUseCalendar, view)));
 
     commandHandlers.put("create calendar", (line, view) ->
         HandleEvents.handleCreateCalendarEvent(line, calendarManager, view)
@@ -139,21 +111,25 @@ public class CalendarControllerImpl implements CalendarController {
       }
     });
 
-    commandHandlers.put("edit calendar", (line, view) -> {
-      if (inUseCalendar == null) {
-        view.printMessage("Error: No calendar selected.");
-      } else {
-        HandleEvents.handleEditCalendarEvent(line, calendarManager, view);
-      }
-    });
+    commandHandlers.put("edit calendar", (line, view) -> guardWithActiveCalendar(view,
+        () -> HandleEvents.handleEditCalendarEvent(line, calendarManager, view)));
 
-    commandHandlers.put("copy event", (line, view) -> {
-      if (inUseCalendar == null) {
-        view.printMessage("Error: No calendar selected.");
-      } else {
-        HandleEvents.handleCopyEvent(line, calendarManager, view, inUseCalendar);
-      }
-    });
+    commandHandlers.put("copy event", (line, view) -> guardWithActiveCalendar(view,
+        () -> HandleEvents.handleCopyEvent(line, calendarManager, view, inUseCalendar)));
+  }
+
+  private void guardWithActiveCalendar(CalendarView view, CheckedCalendarAction action)
+      throws IOException {
+    if (inUseCalendar == null) {
+      view.printMessage(ERROR_NO_CALENDAR);
+    } else {
+      action.run();
+    }
+  }
+
+  @FunctionalInterface
+  private interface CheckedCalendarAction {
+    void run() throws IOException;
   }
 
   /**
