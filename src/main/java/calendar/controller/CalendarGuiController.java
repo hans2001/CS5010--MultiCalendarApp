@@ -1,6 +1,7 @@
 package calendar.controller;
 
 import calendar.controller.guicommands.CalendarGuiCommand;
+import calendar.controller.guicommands.CalendarGuiCommandContext;
 import calendar.controller.guicommands.CreateCalendarCommand;
 import calendar.controller.guicommands.EditCalendarCommand;
 import calendar.controller.guicommands.NextMonthCommand;
@@ -121,7 +122,9 @@ public class CalendarGuiController implements CalendarGuiFeatures {
       view.showError("Unknown command: " + name);
       return;
     }
-    cmd.run(calendarManager, inUseGuiCalendar, this, view);
+    CalendarGuiCommandContext context = new CalendarGuiCommandContext(
+        calendarManager, inUseGuiCalendar, this, view);
+    cmd.run(context);
   }
 
   private void handleSelectDay(LocalDate date) {

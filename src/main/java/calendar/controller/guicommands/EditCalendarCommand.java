@@ -1,51 +1,45 @@
 package calendar.controller.guicommands;
 
-import calendar.controller.CalendarGuiController;
-import calendar.model.CalendarManager;
-import calendar.model.GuiCalendar;
-import calendar.model.GuiCalendarInterface;
+import calendar.controller.guicommands.CalendarGuiCommandContext;
 import calendar.model.TimeZoneInMemoryCalendarInterface;
 import calendar.model.exception.NotFoundException;
-import calendar.view.CalendarGuiViewInterface;
+import calendar.view.model.CalendarEditData;
 import java.time.ZoneId;
 
 /**
  * Edits the calendar for a new name or timezone.
  */
 public class EditCalendarCommand implements CalendarGuiCommand {
-  /**
-   * Grabs the user changes and updates the calendar.
-   *
-   * @param manager calendar manager.
-   * @param current the current calendar in use.
-   * @param view the view.
-   */
   @Override
-  public void run(CalendarManager manager, GuiCalendarInterface current,
-                  CalendarGuiController controller,
-                  CalendarGuiViewInterface view) {
-    String[] ret = view.displayEditCalendar(
-        current.getName(),
-        current.getZoneId());
-    String ogName = ret[0];
-    String newName = ret[1];
-    String newTimeZone = ret[2];
+  public void run(CalendarGuiCommandContext context) {
+    CalendarEditData editData = context.view().displayEditCalendar(
+        context.currentCalendar().getName(),
+        context.currentCalendar().getZoneId());
+    String ogName = editData.originalName();
+    String newName = editData.newName();
+    String newTimeZone = editData.newTimezone();
 
-    TimeZoneInMemoryCalendarInterface found = manager.getCalendar(ogName);
+    TimeZoneInMemoryCalendarInterface found;
+    try {
+      found = context.manager().getCalendar(ogName);
+    } catch (NotFoundException e) {
+      context.view().showError("Calendar not found: " + e.getMessage());
+      return;
+    }
 
-    //Update the Timezone (if changed)
+    // Update the timezone if it changed.
     if (!found.getZoneId().toString().equals(newTimeZone)) {
-      manager.editCalendarTimezone(ogName, ZoneId.of(newTimeZone));
-      view.setActiveCalendarTimezone(newTimeZone);
+      context.manager().editCalendarTimezone(ogName, ZoneId.of(newTimeZone));
+      context.view().setActiveCalendarTimezone(newTimeZone);
     }
 
     if (!found.getName().equals(newName)) {
-      manager.editCalendarName(ogName, newName);
-      controller.renameKnownCalendar(ogName, newName);
-      view.setActiveCalendarName(newName);
-      view.editCalendarInSelector(ogName, newName);
+      context.manager().editCalendarName(ogName, newName);
+      context.controller().renameKnownCalendar(ogName, newName);
+      context.view().setActiveCalendarName(newName);
+      context.view().editCalendarInSelector(ogName, newName);
     }
 
-    controller.refreshActiveCalendar();
+    context.controller().refreshActiveCalendar();
   }
 }

@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import calendar.controller.guicommands.CalendarGuiCommandContext;
 import calendar.controller.guicommands.CreateCalendarCommand;
 import calendar.controller.guicommands.EditCalendarCommand;
 import calendar.controller.guicommands.NextMonthCommand;
@@ -19,6 +20,8 @@ import calendar.model.config.CalendarSettings;
 import calendar.model.domain.Event;
 import calendar.view.CalendarGuiFeatures;
 import calendar.view.CalendarGuiViewInterface;
+import calendar.view.model.CalendarCreationData;
+import calendar.view.model.CalendarEditData;
 import calendar.view.model.GuiEventSummary;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
@@ -58,6 +61,10 @@ public final class CalendarGuiControllerTest {
         view,
         guiCalendar,
         manager);
+  }
+
+  private CalendarGuiCommandContext commandContext() {
+    return new CalendarGuiCommandContext(manager, guiCalendar, controller, view);
   }
 
   @Test
@@ -102,11 +109,11 @@ public final class CalendarGuiControllerTest {
   @Test
   public void monthNavigationInvokesCommands() {
     final int initialDraws = view.drawnMonths.size();
-    new NextMonthCommand().run(manager, guiCalendar, controller, view);
+    new NextMonthCommand().run(commandContext());
     YearMonth afterNext = guiCalendar.getMonth();
     assertEquals(afterNext.atDay(1), view.lastDisplayedDate);
 
-    new PrevMonthCommand().run(manager, guiCalendar, controller, view);
+    new PrevMonthCommand().run(commandContext());
     YearMonth afterPrev = guiCalendar.getMonth();
     assertEquals(afterPrev.atDay(1), view.lastDisplayedDate);
 
@@ -126,8 +133,8 @@ public final class CalendarGuiControllerTest {
   @Test
   public void createCalendarCommandCreatesAndRegistersCalendar() {
     CreateCalendarCommand cmd = new CreateCalendarCommand();
-    view.nextNewCalendarPrompt = new String[] {"Team", "America/Chicago"};
-    cmd.run(manager, guiCalendar, controller, view);
+    view.nextNewCalendarPrompt = Optional.of(new CalendarCreationData("Team", "America/Chicago"));
+    cmd.run(commandContext());
 
     assertTrue(manager.hasCalendar("Team"));
     assertTrue(view.messages.stream().anyMatch(m -> m.contains("Created calendar")));
@@ -136,7 +143,8 @@ public final class CalendarGuiControllerTest {
 
   @Test
   public void requestCalendarCreationDelegatesToCommand() {
-    view.nextNewCalendarPrompt = new String[] {"ViaRequest", "America/Chicago"};
+    view.nextNewCalendarPrompt = Optional.of(
+        new CalendarCreationData("ViaRequest", "America/Chicago"));
     controller.requestCalendarCreation();
     assertTrue(manager.hasCalendar("ViaRequest"));
   }
@@ -144,8 +152,9 @@ public final class CalendarGuiControllerTest {
   @Test
   public void createCalendarCommandGracefullyHandlesConflict() {
     CreateCalendarCommand cmd = new CreateCalendarCommand();
-    view.nextNewCalendarPrompt = new String[] {"Default Calendar", "America/New_York"};
-    cmd.run(manager, guiCalendar, controller, view);
+    view.nextNewCalendarPrompt = Optional.of(
+        new CalendarCreationData("Default Calendar", "America/New_York"));
+    cmd.run(commandContext());
 
     assertTrue("Error message shown for duplicate name", view.errors.stream()
         .anyMatch(err -> err.contains("Could not create calendar")));
@@ -153,7 +162,8 @@ public final class CalendarGuiControllerTest {
 
   @Test
   public void requestCalendarEditDelegatesToCommand() {
-    view.nextEditCalendarResponse = new String[] {"Default Calendar", "ReqEdit", "America/Denver"};
+    view.nextEditCalendarResponse = new CalendarEditData(
+        "Default Calendar", "ReqEdit", "America/Denver");
     controller.requestCalendarEdit();
     assertTrue(manager.hasCalendar("ReqEdit"));
     assertEquals("ReqEdit", view.activeCalendarName);
@@ -164,7 +174,7 @@ public final class CalendarGuiControllerTest {
   public void selectCalendarCommandSwitchesActiveCalendar() {
     manager.createCalendar("Team", "America/Chicago");
     view.selectedCalendar = "Team";
-    new SelectCalendarCommand().run(manager, guiCalendar, controller, view);
+    new SelectCalendarCommand().run(commandContext());
     assertEquals("Team", view.activeCalendarName);
     assertEquals("America/Chicago", view.activeCalendarTimezone);
   }
@@ -182,8 +192,8 @@ public final class CalendarGuiControllerTest {
   public void editCalendarCommandUpdatesNameAndTimezone() {
     final int drawsBefore = view.drawnMonths.size();
     view.nextEditCalendarResponse =
-        new String[] {"Default Calendar", "Renamed", "America/Chicago"};
-    new EditCalendarCommand().run(manager, guiCalendar, controller, view);
+        new CalendarEditData("Default Calendar", "Renamed", "America/Chicago");
+    new EditCalendarCommand().run(commandContext());
 
     assertTrue(manager.hasCalendar("Renamed"));
     assertEquals("Renamed", view.activeCalendarName);
@@ -461,8 +471,8 @@ public final class CalendarGuiControllerTest {
     private CalendarGuiFeatures features;
     Optional<EventCreationRequest> nextCreationRequest = Optional.empty();
     Optional<EventEditRequest> nextEditRequest = Optional.empty();
-    String[] nextNewCalendarPrompt;
-    String[] nextEditCalendarResponse;
+    Optional<CalendarCreationData> nextNewCalendarPrompt = Optional.empty();
+    CalendarEditData nextEditCalendarResponse;
     final List<String> messages = new ArrayList<>();
     final List<String> errors = new ArrayList<>();
     LocalDate lastDisplayedDate;
@@ -535,9 +545,9 @@ public final class CalendarGuiControllerTest {
     }
 
     @Override
-    public String[] promptNewCalendar() {
-      String[] result = nextNewCalendarPrompt;
-      nextNewCalendarPrompt = null;
+    public Optional<CalendarCreationData> promptNewCalendar() {
+      Optional<CalendarCreationData> result = nextNewCalendarPrompt;
+      nextNewCalendarPrompt = Optional.empty();
       return result;
     }
 
@@ -575,13 +585,13 @@ public final class CalendarGuiControllerTest {
     }
 
     @Override
-    public String[] displayEditCalendar(String calendarName, String calendarTz) {
+    public CalendarEditData displayEditCalendar(String calendarName, String calendarTz) {
       if (nextEditCalendarResponse != null) {
-        String[] response = nextEditCalendarResponse;
+        CalendarEditData response = nextEditCalendarResponse;
         nextEditCalendarResponse = null;
         return response;
       }
-      return new String[] {calendarName, calendarName, calendarTz};
+      return new CalendarEditData(calendarName, calendarName, calendarTz);
     }
   }
 }
