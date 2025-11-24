@@ -14,6 +14,52 @@ This creates `build/libs/calendar-1.0.jar`
 
 The application supports two modes: **interactive** and **headless**.
 
+Also supports a GUI mode.
+
+### GUI Mode
+
+Run the calendar with the command prompt:
+
+```bash
+java -jar build/libs/calendar-1.0.jar
+```
+
+List of ways to interact with the GUI.
+
+**Create a Calendar**
+
+- Click "New Calendar" in the top toolbar.
+
+- Enter a calendar name and choose a timezone.
+
+- Click OK to create it.
+
+**Edit a Calendar**
+
+- Click "Edit Calendar" and you edit the current calendar.
+
+- Modify the name and/or timezone.
+
+- Click OK to save changes.
+
+**Create an Event**
+
+- Click "New Event" to make a new event for the current calendar.
+
+- Fill out which pattern of event you want. (single, recurring, etc.)
+
+- Fill subject, start/end time, and other fields.
+
+Edit an Event
+
+- Click an event in the event list to highlight it.
+
+- Click "Edit Event".
+
+- Modify event.
+
+- Press OK.
+
 ### Interactive Mode
 
 Run the calendar with an interactive command prompt:
