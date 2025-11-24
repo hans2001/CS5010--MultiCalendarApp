@@ -41,7 +41,6 @@ public class CalendarGuiController implements CalendarGuiFeatures {
   private final CalendarGuiViewInterface view;
   private GuiCalendarInterface inUseGuiCalendar;
   private final CalendarManager calendarManager;
-  private GuiCalendar inUseGuiCalendar;
   private final Map<String, CalendarGuiCommand> commandMap = new HashMap<>();
   private final Set<String> knownCalendars = new HashSet<>();
   private final CalendarFormService formService = new CalendarFormService();
@@ -106,5 +105,45 @@ public class CalendarGuiController implements CalendarGuiFeatures {
    */
   public void setInUseCalendar(TimeZoneInMemoryCalendarInterface newCalendar) {
     this.inUseGuiCalendar.switchCalendar(newCalendar);
+  }
+
+  @Override
+  public void goToPreviousMonth() {
+
+  }
+
+  @Override
+  public void goToNextMonth() {
+
+  }
+
+  @Override
+  public void requestEventCreation() {
+
+  }
+
+  @Override
+  public void requestEventEdit(GuiEventSummary summary) {
+
+  }
+
+  @Override
+  public void requestCalendarCreation() {
+
+  }
+
+  @Override
+  public void requestCalendarEdit() {
+
+  }
+
+  @Override
+  public void calendarSelected(String name) {
+
+  }
+
+  @Override
+  public void daySelected(LocalDate date) {
+
   }
 }
