@@ -37,11 +37,11 @@ import java.util.Set;
 public class CalendarGuiController implements CalendarGuiFeatures {
   private final CalendarGuiViewInterface view;
   private final CalendarManager calendarManager;
+  private GuiCalendar inUseGuiCalendar;
   private final Map<String, CalendarGuiCommand> commandMap = new HashMap<>();
   private final Set<String> knownCalendars = new HashSet<>();
   private final CalendarFormService formService = new CalendarFormService();
   private LocalDate selectedDate;
-  private GuiCalendar inUseGuiCalendar;
 
   /**
    * Creates the controller.
