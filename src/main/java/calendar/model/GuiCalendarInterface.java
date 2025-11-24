@@ -34,11 +34,4 @@ public interface GuiCalendarInterface {
    * @return tz of calendar.
    */
   String getZoneId();
-
-  /**
-   * Switch the current calendar for a new one.
-   *
-   * @param calendar new calendar.
-   */
-  void switchCalendar(TimeZoneInMemoryCalendarInterface calendar);
 }
