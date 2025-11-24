@@ -20,6 +20,7 @@ import calendar.model.exception.ValidationException;
 import calendar.view.CalendarGuiFeatures;
 import calendar.view.CalendarGuiViewInterface;
 import calendar.view.model.GuiEventSummary;
+import java.awt.event.ActionEvent;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
@@ -237,6 +238,24 @@ public class CalendarGuiController implements CalendarGuiFeatures {
   }
 
   /**
+   * Gets the name of the inUseCalendar.
+   *
+   * @return name of calendar.
+   */
+  public String getName() {
+    return this.inUseGuiCalendar.getName();
+  }
+
+  /**
+   * Gets the name of the inUseCalendar.
+   *
+   * @return name of calendar.
+   */
+  public String getZoneId() {
+    return this.inUseGuiCalendar.getZoneId();
+  }
+
+  /**
    * Called after month navigation commands.
    *
    * @param newMonth month to display.
@@ -254,6 +273,15 @@ public class CalendarGuiController implements CalendarGuiFeatures {
   public void refreshActiveCalendar() {
     TimeZoneInMemoryCalendarInterface active = getActiveCalendar();
     setInUseCalendar(new GuiCalendar(active));
+  }
+
+  /**
+   * Executes the command.
+   *
+   * @param e event.
+   */
+  public void actionPerformed(ActionEvent e) {
+    executeCommand(e.getActionCommand());
   }
 
 }
