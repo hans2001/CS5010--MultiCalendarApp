@@ -17,6 +17,8 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -309,4 +311,38 @@ public class InMemoryCalendar implements CalendarApi {
     return seriesIndex.seriesOf(eventId).map(SeriesId::new);
   }
 
+  @Override
+  public synchronized void convertTimeZone(ZoneId fromZone, ZoneId toZone) {
+    Objects.requireNonNull(fromZone, "fromZone cannot be null");
+    Objects.requireNonNull(toZone, "toZone cannot be null");
+    if (fromZone.equals(toZone)) {
+      return;
+    }
+    Map<EventId, Event> converted = new HashMap<>();
+    for (Map.Entry<EventId, Event> entry : byId.entrySet()) {
+      Event evt = entry.getValue();
+      LocalDateTime convertedStart = convertBetweenZones(evt.start(), fromZone, toZone);
+      LocalDateTime convertedEnd = convertBetweenZones(evt.end(), fromZone, toZone);
+      Event rebuilt = new Event.Builder()
+          .id(evt.id())
+          .subject(evt.subject())
+          .start(convertedStart)
+          .end(convertedEnd)
+          .description(evt.description().orElse(""))
+          .location(evt.location().orElse(""))
+          .status(evt.status())
+          .build();
+      converted.put(entry.getKey(), rebuilt);
+    }
+    byId.clear();
+    byId.putAll(converted);
+    uniqueness.reset(byId.values());
+  }
+
+  private static LocalDateTime convertBetweenZones(LocalDateTime time,
+                                                   ZoneId fromZone,
+                                                   ZoneId toZone) {
+    ZonedDateTime zoned = time.atZone(fromZone).withZoneSameInstant(toZone);
+    return zoned.toLocalDateTime();
+  }
 }

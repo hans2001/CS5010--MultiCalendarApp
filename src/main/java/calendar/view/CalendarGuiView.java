@@ -4,6 +4,8 @@ import calendar.controller.service.EventCreationRequest;
 import calendar.controller.service.EventEditRequest;
 import calendar.view.dialog.EventCreationDialog;
 import calendar.view.dialog.EventEditDialog;
+import calendar.view.model.CalendarCreationData;
+import calendar.view.model.CalendarEditData;
 import calendar.view.model.GuiEventSummary;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -254,7 +256,7 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
   }
 
   @Override
-  public String[] promptNewCalendar() {
+  public Optional<CalendarCreationData> promptNewCalendar() {
     JPanel panel = new JPanel(new GridLayout(2, 2, 5, 5));
     JTextField nameField = new JTextField();
     panel.add(new JLabel("Calendar Name:"));
@@ -269,15 +271,15 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
         this, panel, "Create New Calendar",
         JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
     if (result != JOptionPane.OK_OPTION) {
-      return null;
+      return Optional.empty();
     }
     String name = nameField.getText().trim();
     String tz = Objects.requireNonNull((String) tzBox.getSelectedItem());
     if (name.isEmpty() || tz.isEmpty()) {
       showError("Both fields must be filled.");
-      return null;
+      return Optional.empty();
     }
-    return new String[] {name, tz};
+    return Optional.of(new CalendarCreationData(name, tz));
   }
 
   @Override
@@ -324,7 +326,7 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
   }
 
   @Override
-  public String[] displayEditCalendar(String calendarName, String calendarTz) {
+  public CalendarEditData displayEditCalendar(String calendarName, String calendarTz) {
     JPanel panel = new JPanel(new GridLayout(2, 2, 5, 5));
     panel.add(new JLabel("Calendar Name:"));
     JTextField nameField = new JTextField(calendarName);
@@ -341,11 +343,11 @@ public class CalendarGuiView extends JFrame implements CalendarGuiViewInterface 
         this, panel, "Edit Calendar",
         JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
     if (result != JOptionPane.OK_OPTION) {
-      return new String[] {calendarName, calendarName, calendarTz};
+      return new CalendarEditData(calendarName, calendarName, calendarTz);
     }
     String newName = nameField.getText().trim();
     String newTz = Objects.requireNonNull((String) tzBox.getSelectedItem());
-    return new String[] {calendarName, newName, newTz};
+    return new CalendarEditData(calendarName, newName, newTz);
   }
 
   private void registerKeyBindings() {

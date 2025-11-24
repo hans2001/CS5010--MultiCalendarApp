@@ -9,6 +9,7 @@ import calendar.model.exception.NotFoundException;
 import calendar.model.exception.ValidationException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -98,5 +99,13 @@ public interface CalendarApi {
    * @return optional series identifier
    */
   Optional<SeriesId> seriesOfEvent(EventId eventId);
+
+  /**
+   * Converts each event timestamp from {@code fromZone} to {@code toZone}.
+   *
+   * @param fromZone original timezone for stored timestamps
+   * @param toZone   new timezone to interpret the timestamps in
+   */
+  void convertTimeZone(ZoneId fromZone, ZoneId toZone);
 
 }

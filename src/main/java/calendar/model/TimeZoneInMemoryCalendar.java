@@ -112,7 +112,16 @@ public class TimeZoneInMemoryCalendar implements TimeZoneInMemoryCalendarInterfa
     if (zoneId == null) {
       throw new IllegalArgumentException("zoneId cannot be null");
     }
+    if (zoneId.equals(this.zoneId)) {
+      return;
+    }
+    delegate.convertTimeZone(this.zoneId, zoneId);
     this.zoneId = zoneId;
+  }
+
+  @Override
+  public void convertTimeZone(ZoneId fromZone, ZoneId toZone) {
+    delegate.convertTimeZone(fromZone, toZone);
   }
 
   @Override

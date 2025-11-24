@@ -2,6 +2,8 @@ package calendar.view;
 
 import calendar.controller.service.EventCreationRequest;
 import calendar.controller.service.EventEditRequest;
+import calendar.view.model.CalendarCreationData;
+import calendar.view.model.CalendarEditData;
 import calendar.view.model.GuiEventSummary;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -79,9 +81,9 @@ public interface CalendarGuiViewInterface {
   /**
    * Prompts for a new calendar's name/timezone.
    *
-   * @return {name, timezone} or {@code null} if cancelled.
+   * @return creation data when completed or empty if cancelled.
    */
-  String[] promptNewCalendar();
+  Optional<CalendarCreationData> promptNewCalendar();
 
   /**
    * Updates the active calendar label.
@@ -131,7 +133,7 @@ public interface CalendarGuiViewInterface {
    *
    * @param calendarName current name.
    * @param calendarTz current timezone.
-   * @return array {originalName, newName, newTimezone}.
+   * @return editing data that always contains a name/tz result.
    */
-  String[] displayEditCalendar(String calendarName, String calendarTz);
+  CalendarEditData displayEditCalendar(String calendarName, String calendarTz);
 }
