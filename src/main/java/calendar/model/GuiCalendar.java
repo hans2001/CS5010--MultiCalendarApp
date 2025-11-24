@@ -33,18 +33,18 @@ public class GuiCalendar implements GuiCalendarInterface {
   private void initializeCurrentMonth() {
     List<Event> events = inUseCalendar.allEvents();
 
-    //    if (!events.isEmpty()) {
-    //      Event earliest = events.stream()
-    //          .min(Comparator.comparing(Event::start))
-    //          .orElse(null);
-    //
-    //      if (earliest != null) {
-    //        this.currentMonth = YearMonth.from(
-    //            earliest.start().atZone(inUseCalendar.getZoneId())
-    //        );
-    //        return;
-    //      }
-    //    }
+    if (!events.isEmpty()) {
+      Event earliest = events.stream()
+          .min(Comparator.comparing(Event::start))
+          .orElse(null);
+
+      if (earliest != null) {
+        this.currentMonth = YearMonth.from(
+            earliest.start().atZone(inUseCalendar.getZoneId())
+        );
+        return;
+      }
+    }
 
     this.currentMonth = YearMonth.now(inUseCalendar.getZoneId());
   }
@@ -74,10 +74,5 @@ public class GuiCalendar implements GuiCalendarInterface {
   @Override
   public String getZoneId() {
     return inUseCalendar.getZoneId().toString();
-  }
-
-  @Override
-  public void switchCalendar(TimeZoneInMemoryCalendarInterface calendar) {
-    this.inUseCalendar = calendar;
   }
 }
