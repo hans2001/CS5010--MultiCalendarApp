@@ -40,6 +40,7 @@ public class CalendarGuiController implements CalendarGuiFeatures {
   private final Set<String> knownCalendars = new HashSet<>();
   private final CalendarFormService formService = new CalendarFormService();
   private LocalDate selectedDate;
+  private GuiCalendar inUseGuiCalendar;
 
   /**
    * Creates the controller.
@@ -255,43 +256,4 @@ public class CalendarGuiController implements CalendarGuiFeatures {
     setInUseCalendar(new GuiCalendar(active));
   }
 
-  @Override
-  public void goToPreviousMonth() {
-
-  }
-
-  @Override
-  public void goToNextMonth() {
-
-  }
-
-  @Override
-  public void requestEventCreation() {
-
-  }
-
-  @Override
-  public void requestEventEdit(GuiEventSummary summary) {
-
-  }
-
-  @Override
-  public void requestCalendarCreation() {
-
-  }
-
-  @Override
-  public void requestCalendarEdit() {
-
-  }
-
-  @Override
-  public void calendarSelected(String name) {
-
-  }
-
-  @Override
-  public void daySelected(LocalDate date) {
-
-  }
 }
