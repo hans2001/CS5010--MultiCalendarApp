@@ -31,21 +31,6 @@ public class GuiCalendar implements GuiCalendarInterface {
    * If no events just pick the current month.
    */
   private void initializeCurrentMonth() {
-    List<Event> events = inUseCalendar.allEvents();
-
-    if (!events.isEmpty()) {
-      Event earliest = events.stream()
-          .min(Comparator.comparing(Event::start))
-          .orElse(null);
-
-      if (earliest != null) {
-        this.currentMonth = YearMonth.from(
-            earliest.start().atZone(inUseCalendar.getZoneId())
-        );
-        return;
-      }
-    }
-
     this.currentMonth = YearMonth.now(inUseCalendar.getZoneId());
   }
 

@@ -27,19 +27,24 @@ public class EditCalendarCommand implements CalendarGuiCommand {
       return;
     }
 
-    // Update the timezone if it changed.
-    if (!found.getZoneId().toString().equals(newTimeZone)) {
-      context.manager().editCalendarTimezone(ogName, ZoneId.of(newTimeZone));
-      context.view().setActiveCalendarTimezone(newTimeZone);
-    }
 
-    if (!found.getName().equals(newName)) {
-      context.manager().editCalendarName(ogName, newName);
-      context.controller().renameKnownCalendar(ogName, newName);
-      context.view().setActiveCalendarName(newName);
-      context.view().editCalendarInSelector(ogName, newName);
-    }
+    try {
+      // Update the timezone if it changed.
+      if (!found.getZoneId().toString().equals(newTimeZone)) {
+        context.manager().editCalendarTimezone(ogName, ZoneId.of(newTimeZone));
+        context.view().setActiveCalendarTimezone(newTimeZone);
+      }
 
-    context.controller().refreshActiveCalendar();
+      if (!found.getName().equals(newName)) {
+        context.manager().editCalendarName(ogName, newName);
+        context.controller().renameKnownCalendar(ogName, newName);
+        context.view().setActiveCalendarName(newName);
+        context.view().editCalendarInSelector(ogName, newName);
+      }
+
+      context.controller().refreshActiveCalendar();
+    } catch (Exception e) {
+      context.view().showError("Error while editing: " + e.getMessage());
+    }
   }
 }
