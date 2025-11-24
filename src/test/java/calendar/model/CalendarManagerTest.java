@@ -80,6 +80,29 @@ public final class CalendarManagerTest {
   }
 
   @Test
+  public void editCalendarTimezone_convertsEventTimes() {
+    CalendarManager manager = new CalendarManager();
+    TimeZoneInMemoryCalendarInterface calendar =
+        manager.createCalendar("School", "America/New_York");
+
+    LocalDateTime start = LocalDateTime.of(2025, 6, 1, 10, 0);
+    LocalDateTime end = start.plusHours(1);
+    calendar.create(draft("Meeting", start, end));
+
+    ZoneId targetZone = ZoneId.of("America/Los_Angeles");
+    LocalDateTime expectedStart =
+        calendar.convertToLocalDateTime(start, calendar.getZoneId(), targetZone);
+    LocalDateTime expectedEnd =
+        calendar.convertToLocalDateTime(end, calendar.getZoneId(), targetZone);
+
+    manager.editCalendarTimezone("School", targetZone);
+
+    Event event = calendar.allEvents().get(0);
+    assertEquals(expectedStart, event.start());
+    assertEquals(expectedEnd, event.end());
+  }
+
+  @Test
   public void copyEvent_createsEventInTargetCalendar() {
     CalendarManager manager = new CalendarManager();
     TimeZoneInMemoryCalendarInterface source =

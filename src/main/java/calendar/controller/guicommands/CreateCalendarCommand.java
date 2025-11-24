@@ -1,10 +1,7 @@
 package calendar.controller.guicommands;
 
-import calendar.controller.CalendarGuiController;
-import calendar.model.CalendarManager;
-import calendar.model.GuiCalendarInterface;
-import calendar.model.TimeZoneInMemoryCalendarInterface;
-import calendar.view.CalendarGuiViewInterface;
+import calendar.controller.guicommands.CalendarGuiCommandContext;
+import calendar.view.model.CalendarCreationData;
 
 /**
  * Command for creating a new calendar.
@@ -12,26 +9,21 @@ import calendar.view.CalendarGuiViewInterface;
 public class CreateCalendarCommand implements CalendarGuiCommand {
 
   @Override
-  public void run(CalendarManager manager, GuiCalendarInterface current,
-                  CalendarGuiController controller,
-                  CalendarGuiViewInterface view) {
-
-    String[] data = view.promptNewCalendar();
+  public void run(CalendarGuiCommandContext context) {
+    CalendarCreationData data = context.view().promptNewCalendar().orElse(null);
     if (data == null) {
       return;
     }
 
-    String name = data[0];
-    String tz = data[1];
+    String name = data.name();
+    String tz = data.timezone();
 
     try {
-      manager.createCalendar(name, tz);
-      view.showMessage("Created calendar with name \""
-          +
-          name + "\" with timezone " + tz);
-      view.addCalendarToSelector(name);
+      context.manager().createCalendar(name, tz);
+      context.view().showMessage("Created calendar with name \"" + name + "\" with timezone " + tz);
+      context.controller().registerCalendarName(name);
     } catch (Exception e) {
-      view.showError("Could not create calendar: " + e.getMessage());
+      context.view().showError("Could not create calendar: " + e.getMessage());
     }
   }
 }

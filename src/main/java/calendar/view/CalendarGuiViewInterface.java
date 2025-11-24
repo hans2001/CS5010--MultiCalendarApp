@@ -1,99 +1,139 @@
 package calendar.view;
 
-import java.awt.event.ActionListener;
+import calendar.controller.service.EventCreationRequest;
+import calendar.controller.service.EventEditRequest;
+import calendar.view.model.CalendarCreationData;
+import calendar.view.model.CalendarEditData;
+import calendar.view.model.GuiEventSummary;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
-import java.util.Set;
+import java.util.Optional;
 
 /**
  * How the controller and view should interact.
  */
 public interface CalendarGuiViewInterface {
   /**
-   * Make the view visible.
+   * Makes the GUI visible.
    */
   void makeVisible();
 
   /**
-   * Draws the current month.
+   * Draws the requested month.
+   *
+   * @param month month/year to display.
    */
   void drawMonth(YearMonth month);
 
   /**
-   * Set an actionListener to a button, giving the button functionality.
+   * Highlights the provided date in the grid.
    *
-   * @param actionEvent event to be fired.
+   * @param date selected date.
    */
-  void setCommandButtonListener(ActionListener actionEvent);
+  void setSelectedDate(LocalDate date);
 
   /**
-   * Display an error popup if the user made an invalid event.
+   * Shows events for the given date in the side panel.
    *
-   * @param message the error message.
+   * @param date day being displayed.
+   * @param events summaries to display/select.
+   */
+  void displayEvents(LocalDate date, List<GuiEventSummary> events);
+
+  /**
+   * Prompts the user for event creation data prefilled with the date.
+   *
+   * @param date selected date.
+   * @return CLI-style command or empty if cancelled/invalid.
+   */
+  Optional<EventCreationRequest> promptForCreateEvent(LocalDate date);
+
+  /**
+   * Prompts the user about how to edit the selected event.
+   *
+   * @param summary event summary.
+   * @return CLI edit command or empty if cancelled/invalid.
+   */
+  Optional<EventEditRequest> promptForEditEvent(GuiEventSummary summary);
+
+  /**
+   * Hooks up high-level GUI features.
+   *
+   * @param features controller callbacks.
+   */
+  void setFeatures(CalendarGuiFeatures features);
+
+  /**
+   * Displays an error dialog.
+   *
+   * @param message message text.
    */
   void showError(String message);
 
   /**
-   * Display a message.
+   * Displays an informational dialog.
    *
-   * @param message the message.
+   * @param message message text.
    */
   void showMessage(String message);
 
   /**
-   * Prompts the user to create a new calendar.
+   * Prompts for a new calendar's name/timezone.
    *
-   * @return String array where first value is name, second is timezone.
-   * */
-  String[] promptNewCalendar();
+   * @return creation data when completed or empty if cancelled.
+   */
+  Optional<CalendarCreationData> promptNewCalendar();
 
   /**
-   * Sets the current calendar name.
+   * Updates the active calendar label.
    *
-   * @param name of calendar.
+   * @param name active calendar.
    */
   void setActiveCalendarName(String name);
 
   /**
-   * Sets the current calendar timezone.
+   * Updates the active timezone label.
    *
-   * @param tz of calendar.
+   * @param tz timezone id.
    */
   void setActiveCalendarTimezone(String tz);
 
   /**
-   * Add a new calendar to the dropdown list of calendars.
+   * Adds a calendar to the selector dropdown.
    *
-   * @param name of new calendar.
+   * @param name calendar name.
    */
   void addCalendarToSelector(String name);
 
   /**
-   * When a calendar name changes, change that name in the selector.
+   * Updates a calendar name inside the selector.
    *
-   * @param ogName of old calendar.
-   * @param newName of new calendar.
+   * @param ogName original name.
+   * @param newName updated name.
    */
   void editCalendarInSelector(String ogName, String newName);
 
   /**
-   * Set the selector list to this calendar name.
+   * Selects the named calendar in the dropdown.
    *
-   * @param name of calendar.
+   * @param name calendar to select.
    */
   void selectCalendarOnCalendarSelector(String name);
 
   /**
-   * Get the selected calendar name.
+   * Returns the calendar currently selected in the dropdown.
    *
-   * @return name of selected calendar.
+   * @return calendar name.
    */
   String getSelectedCalendarName();
 
   /**
-   * Displays the box to edit the calendar.
+   * Prompts the user to edit a calendar's name/timezone.
    *
-   * @return index zero is edited name, index one is edited timezone
+   * @param calendarName current name.
+   * @param calendarTz current timezone.
+   * @return editing data that always contains a name/tz result.
    */
-  String[] displayEditCalendar(String calendarName, String calendarTz);
+  CalendarEditData displayEditCalendar(String calendarName, String calendarTz);
 }

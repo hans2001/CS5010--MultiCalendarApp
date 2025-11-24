@@ -2,6 +2,7 @@ package calendar.controller;
 
 import static calendar.controller.CommandPatterns.EXPORT;
 import static calendar.controller.CommandPatterns.SHOW_STATUS_ON;
+import static calendar.controller.service.CommandTokenizer.tokenize;
 
 import calendar.controller.commands.CommandHandler;
 import calendar.controller.commands.HandleEvents;
@@ -26,15 +27,12 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Scanner;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Calendar controller for processing user input and interacting with model and view.
@@ -48,6 +46,8 @@ public class CalendarControllerImpl implements CalendarController {
   private final CalendarFormService formService;
   private final Map<String, CommandHandler> commandHandlers = new HashMap<>();
   private TimeZoneInMemoryCalendarInterface inUseCalendar = null;
+  private static final String ERROR_NO_CALENDAR =
+      "Error: No calendar selected.";
 
   /**
    * Creates a new calendar controller.
@@ -73,27 +73,6 @@ public class CalendarControllerImpl implements CalendarController {
   }
 
   /**
-   * Splits the user command by "" or spaces to try and get keywords and params.
-   *
-   * @param input user input.
-   * @return array of parts for each word in the input.
-   */
-  private static String[] splitCommands(String input) {
-    List<String> parts = new ArrayList<>();
-    Matcher matcher = Pattern.compile("\"[^\"]+\"|\\S+").matcher(input);
-
-    while (matcher.find()) {
-      String part = matcher.group();
-      if (part.startsWith("\"") && part.endsWith("\"")) {
-        part = part.substring(1, part.length() - 1);
-      }
-      parts.add(part);
-    }
-
-    return parts.toArray(new String[0]);
-  }
-
-  /**
    * Registers the controller's text command handlers into the commandHandlers map.
    *
    * <p>The registered handlers parse and dispatch user command lines for creating, editing,
@@ -102,53 +81,23 @@ public class CalendarControllerImpl implements CalendarController {
    * controller's active calendar when a calendar is successfully selected.
    */
   public void registerCommands() {
-    commandHandlers.put("create event", (line, view) -> {
-      if (inUseCalendar == null) {
-        view.printMessage("Error: No calendar selected.");
-      } else {
-        handleCreateEvent(line, inUseCalendar, view);
-      }
-    });
+    commandHandlers.put("create event", (line, view) -> guardWithActiveCalendar(view,
+        () -> handleCreateEvent(line, inUseCalendar, view)));
 
-    commandHandlers.put("edit", (line, view) -> {
-      if (inUseCalendar == null) {
-        view.printMessage("Error: No calendar selected.");
-      } else {
-        handleEditEvent(line, inUseCalendar, view);
-      }
-    });
+    commandHandlers.put("edit", (line, view) -> guardWithActiveCalendar(view,
+        () -> handleEditEvent(line, inUseCalendar, view)));
 
-    commandHandlers.put("edit event", (line, view) -> {
-      if (inUseCalendar == null) {
-        view.printMessage("Error: No calendar selected.");
-      } else {
-        handleEditEvent(line, inUseCalendar, view);
-      }
-    });
+    commandHandlers.put("edit event", (line, view) -> guardWithActiveCalendar(view,
+        () -> handleEditEvent(line, inUseCalendar, view)));
 
-    commandHandlers.put("print", (line, view) -> {
-      if (inUseCalendar == null) {
-        view.printMessage("Error: No calendar selected.");
-      } else {
-        HandleEvents.handlePrintEvent(line, view, calendarManager);
-      }
-    });
+    commandHandlers.put("print", (line, view) -> guardWithActiveCalendar(view,
+        () -> HandleEvents.handlePrintEvent(line, view, calendarManager)));
 
-    commandHandlers.put("show status on", (line, view) -> {
-      if (inUseCalendar == null) {
-        view.printMessage("Error: No calendar selected.");
-      } else {
-        handleShowStatus(line, inUseCalendar, view);
-      }
-    });
+    commandHandlers.put("show status on", (line, view) -> guardWithActiveCalendar(view,
+        () -> handleShowStatus(line, inUseCalendar, view)));
 
-    commandHandlers.put("export cal", (line, view) -> {
-      if (inUseCalendar == null) {
-        view.printMessage("Error: No calendar selected.");
-      } else {
-        handleExport(line, inUseCalendar, view);
-      }
-    });
+    commandHandlers.put("export cal", (line, view) -> guardWithActiveCalendar(view,
+        () -> handleExport(line, inUseCalendar, view)));
 
     commandHandlers.put("create calendar", (line, view) ->
         HandleEvents.handleCreateCalendarEvent(line, calendarManager, view)
@@ -162,21 +111,25 @@ public class CalendarControllerImpl implements CalendarController {
       }
     });
 
-    commandHandlers.put("edit calendar", (line, view) -> {
-      if (inUseCalendar == null) {
-        view.printMessage("Error: No calendar selected.");
-      } else {
-        HandleEvents.handleEditCalendarEvent(line, calendarManager, view);
-      }
-    });
+    commandHandlers.put("edit calendar", (line, view) -> guardWithActiveCalendar(view,
+        () -> HandleEvents.handleEditCalendarEvent(line, calendarManager, view)));
 
-    commandHandlers.put("copy event", (line, view) -> {
-      if (inUseCalendar == null) {
-        view.printMessage("Error: No calendar selected.");
-      } else {
-        HandleEvents.handleCopyEvent(line, calendarManager, view, inUseCalendar);
-      }
-    });
+    commandHandlers.put("copy event", (line, view) -> guardWithActiveCalendar(view,
+        () -> HandleEvents.handleCopyEvent(line, calendarManager, view, inUseCalendar)));
+  }
+
+  private void guardWithActiveCalendar(CalendarView view, CheckedCalendarAction action)
+      throws IOException {
+    if (inUseCalendar == null) {
+      view.printMessage(ERROR_NO_CALENDAR);
+    } else {
+      action.run();
+    }
+  }
+
+  @FunctionalInterface
+  private interface CheckedCalendarAction {
+    void run() throws IOException;
   }
 
   /**
@@ -314,7 +267,7 @@ public class CalendarControllerImpl implements CalendarController {
   private void handleShowStatus(String input, CalendarApi calendar, CalendarView view)
       throws IOException {
     if (input.trim().matches(SHOW_STATUS_ON)) {
-      String[] parts = splitCommands(input);
+      String[] parts = tokenize(input);
       LocalDateTime dateString = LocalDateTime.parse(parts[3]);
 
       BusyStatus status = calendar.statusAt(dateString);
@@ -339,7 +292,7 @@ public class CalendarControllerImpl implements CalendarController {
   private void handleExport(String input, CalendarApi calendar, CalendarView view)
       throws IOException {
     if (input.trim().matches(EXPORT)) {
-      String[] parts = splitCommands(input);
+      String[] parts = tokenize(input);
       String fileName = parts[2];
 
       try {

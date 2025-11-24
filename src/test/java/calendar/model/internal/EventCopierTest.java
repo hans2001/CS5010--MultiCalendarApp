@@ -250,6 +250,11 @@ public final class EventCopierTest {
     }
 
     @Override
+    public void convertTimeZone(ZoneId fromZone, ZoneId toZone) {
+      // no-op for test stub
+    }
+
+    @Override
     public java.time.ZonedDateTime convertTimeFromOneTimeZoneToAnother(LocalDateTime time,
                                                                        ZoneId currentZoneId,
                                                                        ZoneId newZoneId) {

@@ -10,6 +10,7 @@ import calendar.model.api.EventPatch;
 import calendar.model.api.EventSelector;
 import calendar.model.api.SeriesDraft;
 import calendar.model.domain.BusyStatus;
+import calendar.model.domain.Event;
 import calendar.model.recurrence.RecurrenceRule;
 import calendar.model.recurrence.Weekday;
 import java.time.LocalDate;
@@ -66,6 +67,31 @@ public final class TimeZoneInMemoryCalendarTest {
     LocalDateTime converted = calendar.convertToLocalDateTime(
         noonEastern, ZoneId.of("America/New_York"), ZoneId.of("America/Los_Angeles"));
     assertEquals(LocalDateTime.of(2025, 5, 5, 9, 0), converted);
+  }
+
+  @Test
+  public void setZoneId_convertsExistingEvents() {
+    final TimeZoneInMemoryCalendar calendar =
+        new TimeZoneInMemoryCalendar("America/New_York", "Work");
+    EventDraft draft = new EventDraft();
+    draft.subject = "Meeting";
+    LocalDateTime originalStart = LocalDateTime.of(2025, 6, 1, 10, 0);
+    LocalDateTime originalEnd = originalStart.plusHours(1);
+    draft.start = Optional.of(originalStart);
+    draft.end = Optional.of(originalEnd);
+    calendar.create(draft);
+
+    ZoneId targetZone = ZoneId.of("America/Los_Angeles");
+    LocalDateTime expectedStart = calendar.convertToLocalDateTime(
+        originalStart, calendar.getZoneId(), targetZone);
+    LocalDateTime expectedEnd = calendar.convertToLocalDateTime(
+        originalEnd, calendar.getZoneId(), targetZone);
+
+    calendar.setZoneId(targetZone);
+
+    Event event = calendar.allEvents().get(0);
+    assertEquals(expectedStart, event.start());
+    assertEquals(expectedEnd, event.end());
   }
 
   @Test

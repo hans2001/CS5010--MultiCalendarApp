@@ -1,12 +1,13 @@
 package calendar.controller;
 
+import static calendar.controller.CommandPatterns.DATE_ONLY;
+import static calendar.controller.CommandPatterns.DATE_TIME;
+import static calendar.controller.CommandPatterns.SUBJECT;
+
 /**
  * Regex Patterns for new commands.
  */
 public class CommandPatternsExtended {
-  public static final String DATE_TIME = "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}";
-  public static final String DATE_ONLY = "\\d{4}-\\d{2}-\\d{2}";
-  public static final String SUBJECT = "(\"[^\"]+\"|\\S+)";
   private static final String TIMEZONE_SEGMENT = "[A-Za-z0-9_+\\-]+";
   private static final String TIMEZONE =
       "(" + TIMEZONE_SEGMENT + "(?:/" + TIMEZONE_SEGMENT + ")*)";
