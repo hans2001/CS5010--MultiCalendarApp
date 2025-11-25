@@ -328,12 +328,18 @@ public class CalendarControllerImpl implements CalendarController {
         }
       }
 
-    } else {
-      safePrintMessage(view, "Error: Invalid export command format.");
     }
   }
 
-  private Path exportByExtension(Path targetPath, List<Event> events) {
+  /**
+   * Exports via extension.
+   *
+   * @param targetPath target.
+   * @param events events.
+   *
+   * @return path to file.
+   */
+  public Path exportByExtension(Path targetPath, List<Event> events) {
     String lowerName = targetPath.getFileName().toString().toLowerCase(Locale.ROOT);
     if (lowerName.endsWith(".csv")) {
       return csvExporter.export(targetPath, events);

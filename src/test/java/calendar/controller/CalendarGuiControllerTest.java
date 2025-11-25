@@ -429,6 +429,29 @@ public final class CalendarGuiControllerTest {
   }
 
   @Test
+  public void timezoneChangesEventTimeTest() {
+    LocalDate date = LocalDate.of(2025, 6, 5);
+    controller.daySelected(date);
+
+    view.nextCreationRequest = Optional.of(new EventCreationRequest.Builder()
+        .pattern(EventCreationRequest.Pattern.SINGLE_TIMED)
+        .subject("Workshop")
+        .startDateTime(LocalDateTime.of(date, LocalTime.of(9, 0)))
+        .endDateTime(LocalDateTime.of(date, LocalTime.of(10, 0)))
+        .build());
+    controller.requestEventCreation();
+
+    view.nextEditCalendarResponse = new CalendarEditData(
+        "Default Calendar", "ReqEdit", "America/Los_Angeles");
+    controller.requestCalendarEdit();
+
+    Event existing = modelCalendar.allEvents().get(0);
+    assertEquals("Workshop", existing.subject());
+    assertEquals("2025-06-05T06:00", existing.start().toString());
+    assertEquals("2025-06-05T07:00", existing.end().toString());
+  }
+
+  @Test
   public void daySelectedRefreshesView() {
     int beforeSelect = view.setSelectedDateCalls;
     int beforeDisplay = view.displayEventsCalls;

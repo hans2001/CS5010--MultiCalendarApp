@@ -141,9 +141,6 @@ public class CalendarGuiController implements CalendarGuiFeatures {
     }
 
     Optional<EventCreationRequest> request = view.promptForCreateEvent(selectedDate);
-    if (request.isEmpty()) {
-      return;
-    }
 
     try {
       formService.applyCreateEvent(request.get(), getActiveCalendar());
@@ -160,9 +157,6 @@ public class CalendarGuiController implements CalendarGuiFeatures {
 
   private void handleEditEvent(GuiEventSummary summary) {
     Optional<EventEditRequest> command = view.promptForEditEvent(summary);
-    if (command.isEmpty()) {
-      return;
-    }
 
     try {
       formService.applyEditEvent(command.get(), getActiveCalendar());
@@ -178,10 +172,6 @@ public class CalendarGuiController implements CalendarGuiFeatures {
   }
 
   private void refreshEvents() {
-    if (selectedDate == null) {
-      return;
-    }
-
     List<Event> events = getActiveCalendar().eventsOn(selectedDate);
     List<GuiEventSummary> summaries = new ArrayList<>();
     for (Event event : events) {

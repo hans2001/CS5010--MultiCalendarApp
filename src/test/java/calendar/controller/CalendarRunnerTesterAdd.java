@@ -2,6 +2,9 @@ package calendar.controller;
 
 import static org.junit.Assert.assertTrue;
 
+import calendar.export.CoverageTests;
+import java.io.IOException;
+import java.io.StringReader;
 import org.junit.Test;
 
 /**
