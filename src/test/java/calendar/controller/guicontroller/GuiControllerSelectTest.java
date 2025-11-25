@@ -10,6 +10,7 @@ import calendar.model.GuiCalendar;
 import calendar.model.GuiCalendarInterface;
 import calendar.model.TimeZoneInMemoryCalendarInterface;
 import java.awt.event.ActionEvent;
+import java.time.ZoneId;
 import java.util.Map;
 import org.junit.Test;
 
@@ -41,18 +42,18 @@ public class GuiControllerSelectTest extends GuiControllerTest {
     assertTrue(calendars.containsKey("School"));
 
     // Correct Timezones
-    assertEquals("America/New_York",
+    assertEquals(ZoneId.systemDefault().toString(),
         calendars.get("Default Calendar").getZoneId().toString());
     assertEquals("America/Los_Angeles",
         calendars.get("School").getZoneId().toString());
 
     assertEquals("Default Calendar", guiCalendar.getName());
-    assertEquals("America/New_York", guiCalendar.getZoneId());
+    assertEquals(ZoneId.systemDefault().toString(), guiCalendar.getZoneId());
 
     view.selectedCalendar = "Default Calendar";
     controller.actionPerformed(new ActionEvent(this, 0, "select-calendar"));
     assertEquals("Default Calendar", guiCalendar.getName());
-    assertEquals("America/New_York", guiCalendar.getZoneId());
+    assertEquals(ZoneId.systemDefault().toString(), guiCalendar.getZoneId());
 
     view.selectedCalendar = "School";
     controller.actionPerformed(new ActionEvent(this, 0, "select-calendar"));

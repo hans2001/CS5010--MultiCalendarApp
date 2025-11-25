@@ -9,6 +9,7 @@ import calendar.model.GuiCalendar;
 import calendar.model.GuiCalendarInterface;
 import calendar.model.TimeZoneInMemoryCalendarInterface;
 import java.awt.event.ActionEvent;
+import java.time.ZoneId;
 import java.util.Map;
 import org.junit.Test;
 
@@ -42,7 +43,7 @@ public class GuiControllerCreateTest extends GuiControllerTest {
     assertTrue(calendars.containsKey("School"));
 
     // Correct Timezones
-    assertEquals("America/New_York",
+    assertEquals(ZoneId.systemDefault().toString(),
         calendars.get("Default Calendar").getZoneId().toString());
     assertEquals("America/New_York",
         calendars.get("School").getZoneId().toString());
