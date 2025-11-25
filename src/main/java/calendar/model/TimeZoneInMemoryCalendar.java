@@ -51,9 +51,6 @@ public class TimeZoneInMemoryCalendar implements TimeZoneInMemoryCalendarInterfa
     if (timeZoneId == null) {
       throw new IllegalArgumentException("timeZoneId cannot be null");
     }
-    if (name == null) {
-      throw new IllegalArgumentException("name cannot be null");
-    }
     String trimmedTimeZoneId = timeZoneId.trim();
     String trimmedName = name.trim();
     if (trimmedName.isEmpty()) {
@@ -83,14 +80,7 @@ public class TimeZoneInMemoryCalendar implements TimeZoneInMemoryCalendarInterfa
    * @throws IllegalArgumentException if name is null or blank.
    */
   public void setName(String name) {
-    if (name == null) {
-      throw new IllegalArgumentException("name cannot be null");
-    }
-    String trimmedName = name.trim();
-    if (trimmedName.isEmpty()) {
-      throw new IllegalArgumentException("name cannot be blank");
-    }
-    this.name = trimmedName;
+    this.name = name.trim();;
   }
 
   /**
@@ -111,9 +101,6 @@ public class TimeZoneInMemoryCalendar implements TimeZoneInMemoryCalendarInterfa
   public void setZoneId(ZoneId zoneId) {
     if (zoneId == null) {
       throw new IllegalArgumentException("zoneId cannot be null");
-    }
-    if (zoneId.equals(this.zoneId)) {
-      return;
     }
     delegate.convertTimeZone(this.zoneId, zoneId);
     this.zoneId = zoneId;

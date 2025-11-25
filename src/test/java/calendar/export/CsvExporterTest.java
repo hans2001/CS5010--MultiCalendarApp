@@ -101,6 +101,7 @@ public final class CsvExporterTest {
     }
   }
 
+
   /**
    * Tests csv() newline quoting and null handling via reflective access.
    */
@@ -118,4 +119,5 @@ public final class CsvExporterTest {
     String empty = (String) m.invoke(exporter, new Object[] {null});
     org.junit.Assert.assertEquals("", empty);
   }
+
 }

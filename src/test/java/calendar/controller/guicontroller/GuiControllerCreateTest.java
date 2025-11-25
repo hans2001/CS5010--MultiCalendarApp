@@ -69,6 +69,7 @@ public class GuiControllerCreateTest extends GuiControllerTest {
 
     view.nextNewCalendarResponse = new String[]{"Default Calendar", "America/New_York"};
 
+
     controller.actionPerformed(new ActionEvent(this, 0, "create-calendar"));
     calendars = calendarManager.getAllCalendars();
 
@@ -84,4 +85,5 @@ public class GuiControllerCreateTest extends GuiControllerTest {
     assertTrue(view.lastError.startsWith("Could not create calendar: "
         + "Unsupported timezone: Africa/fake"));
   }
+
 }
